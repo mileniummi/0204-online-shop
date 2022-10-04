@@ -13,11 +13,11 @@
     <groupId>com.itmo.microservices</groupId>
     <artifactId>demo-service</artifactId>
     <version>0.1.1-SNAPSHOT</version>
-    <name>demo-service</name>
+    <name>online-shop</name>
     <description>Demo project for microservices course 21-22</description>
 
     <properties>
-        <github>microservices-itmo-21-22/demo-service</github>
+        <github>mileniummi/0204online-shop</github>
         <java.version>11</java.version>
         <kotlin.version>1.6.10</kotlin.version>
         <guava.version>30.1.1-jre</guava.version>
