@@ -36,6 +36,7 @@
 - **POST /authentication**: Authenticate
 - **POST /authentication/refresh**: Refresh authentication
 
+
 ### User module
 
 - **POST /users**: Register
