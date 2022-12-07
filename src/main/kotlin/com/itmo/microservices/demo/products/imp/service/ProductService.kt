@@ -2,17 +2,22 @@ package com.itmo.microservices.demo.products.imp.service
 
 import com.itmo.microservices.demo.catalog.logic.CatalogItem
 import com.itmo.microservices.demo.catalog.logic.model.CatalogRepository
-import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
-import org.springframework.data.domain.Page
+import java.util.stream.Collectors
 
 
 @Service
 class ProductService(
     val catalogRepository: CatalogRepository
 ) {
-    fun getProducts(size: Int, available: Boolean): Page<CatalogItem> {
-        return catalogRepository.findAll(Pageable.ofSize(size))
+    fun getProducts(size: Int, available: Boolean): List<CatalogItem> {
+        return if (available) {
+            val products = catalogRepository.findAllByCountGreaterThan(0)
+            products.stream().limit(size.toLong()).collect(Collectors.toList())
+        } else {
+            val products = catalogRepository.findAllByCountGreaterThan(-1)
+            products.stream().limit(size.toLong()).collect(Collectors.toList())
+        }
     }
 
 }

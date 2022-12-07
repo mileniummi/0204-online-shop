@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 @Repository
-public interface CatalogRepository : MongoRepository<CatalogItem, UUID> {
-
+interface CatalogRepository : MongoRepository<CatalogItem, UUID> {
+    fun findAllByCountGreaterThan(value:Int): List<CatalogItem>
 }
