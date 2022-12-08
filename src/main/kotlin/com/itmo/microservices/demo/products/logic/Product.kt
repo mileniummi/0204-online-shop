@@ -6,8 +6,9 @@ import ru.quipy.domain.AggregateState
 import java.math.BigDecimal
 import java.util.*
 
-abstract class Product :
-    AggregateState<UUID, ProductAggregate> {
+class Product(val aggregateId: UUID) : AggregateState<UUID, ProductAggregate> {
+      var createdAt: Long = System.currentTimeMillis()
+      var updatedAt: Long = System.currentTimeMillis()
 
     fun createNewProduct(
         id: UUID = UUID.randomUUID(), productName: String,
@@ -16,4 +17,6 @@ abstract class Product :
     ): ProductCreatedEvent {
         return ProductCreatedEvent(id, productName, price, description)
     }
+
+    override fun getId(): UUID = aggregateId
 }

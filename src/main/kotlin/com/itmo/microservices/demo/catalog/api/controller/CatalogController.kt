@@ -19,8 +19,10 @@ import java.util.UUID
 @RequestMapping("/catalog")
 class CatalogController(
     private val catalogService: CatalogManagerService,
-    val productEsService: EventSourcingService<UUID, ProductAggregate, Product>
-) {
+    private var productEsService: EventSourcingService<UUID, ProductAggregate, Product>,
+
+    ) {
+
     @PostMapping("/")
     @Operation(
         summary = "Post product",
@@ -30,8 +32,7 @@ class CatalogController(
         ],
         security = [SecurityRequirement(name = "bearerAuth")]
     )
-    fun getCatalog(@RequestBody request: AddCatalogItemRequest) {
-        print(request)
+    fun addProduct(@RequestBody request: AddCatalogItemRequest) {
         this.catalogService.addProduct(request)
     }
 }
