@@ -1,6 +1,6 @@
 package com.itmo.microservices.demo.products.api.controller
 
-import com.itmo.microservices.demo.products.imp.service.ProductService
+import com.itmo.microservices.demo.products.api.service.ProductService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -18,7 +18,7 @@ class ProductController(
 
     @GetMapping
     @Operation(
-        summary = "Get products",
+        summary = "Get products by amount and size",
         responses = [
             ApiResponse(description = "OK", responseCode = "200"),
             ApiResponse(description = "Products not found", responseCode = "404", content = [Content()]),
@@ -27,6 +27,5 @@ class ProductController(
         security = [SecurityRequirement(name = "bearerAuth")]
     )
     fun getProducts(@RequestParam available: Boolean, @RequestParam size: Int) =
-        productService.getProducts(size, available)
-
+        productService.getProducts(available, size)
 }
