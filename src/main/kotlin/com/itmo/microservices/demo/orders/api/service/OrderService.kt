@@ -31,7 +31,7 @@ class OrderService(
             }
         }
         for (orderCatalogItem in order.itemsMap) {
-            catalogEsService.create { catalogState ->
+            catalogEsService.update(orderCatalogItem.key) { catalogState ->
                 catalogState.updateCatalogItemAmount(
                     orderCatalogItem.key,
                     orderCatalogItem.value, false
@@ -57,7 +57,7 @@ class OrderService(
                 .body("Order item amount is greater than existing item amount in warehouse.")
         }
         // decrease item amount
-        catalogEsService.create { catalogState ->
+        catalogEsService.update(catalogItem.getId()) { catalogState ->
             catalogState.updateCatalogItemAmount(
                 catalogItem.getId(), amount, false
             )
