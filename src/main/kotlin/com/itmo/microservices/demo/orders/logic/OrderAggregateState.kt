@@ -4,6 +4,7 @@ import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
 import com.itmo.microservices.demo.orders.api.model.OrderCreatedEvent
 import com.itmo.microservices.demo.orders.api.model.OrderStatus
+import com.itmo.microservices.demo.orders.api.model.OrderUpdatedEvent
 import ru.quipy.core.annotations.StateTransitionFunc
 import ru.quipy.domain.AggregateState
 import java.util.UUID
@@ -23,9 +24,16 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
         )
     }
 
+    fun updateOrder(orderId: UUID, itemsMap:  Map<UUID, Int>): OrderUpdatedEvent {
+        return OrderUpdatedEvent(orderId, itemsMap)
+    }
+
     @StateTransitionFunc
     fun createOrder (event: OrderCreatedEvent){
         orderId = event.orderId
-        updatedAt = createdAt
+    }
+    @StateTransitionFunc
+    fun updateOrder (event: OrderUpdatedEvent){
+        orderId = event.orderId
     }
 }

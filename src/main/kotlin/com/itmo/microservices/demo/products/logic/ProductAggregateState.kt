@@ -19,7 +19,6 @@ class ProductAggregateState : AggregateState<UUID, ProductAggregate> {
         description: String
     ): ProductCreatedEvent {
         return ProductCreatedEvent(UUID.randomUUID(), productName, price, description)
-
     }
 
     @StateTransitionFunc

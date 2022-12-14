@@ -1,6 +1,7 @@
 package com.itmo.microservices.demo.catalog.projections
 
 import com.itmo.microservices.demo.catalog.api.model.CatalogAggregate
+import com.itmo.microservices.demo.catalog.api.model.CatalogItemAmountUpdatedEvent
 import com.itmo.microservices.demo.catalog.api.model.CatalogItemCreatedEvent
 import com.itmo.microservices.demo.products.api.model.Product
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +39,25 @@ class CatalogExistingCache(
                             "${event.product.productName}-${event.product.productId} with amount ${event.amount}"
                 )
             }
+            `when`(CatalogItemAmountUpdatedEvent::class) { event ->
+                val catalogItem = withContext(Dispatchers.IO) {
+                    catalogItemCacheRepository.findById(event.catalogItemId)
+                }
+                if (catalogItem.isPresent) {
+                    withContext(Dispatchers.IO) {
+                        catalogItemCacheRepository.save(
+                            CatalogItem(
+                                event.catalogItemId,
+                                catalogItem.get().product,
+                                event.amount
+                            )
+                        )
+                    }
+                }
+                logger.info(
+                    "Update catalog with item ${event.catalogItemId} with amount ${event.amount}"
+                )
+            }
         }
     }
 }
@@ -49,7 +69,6 @@ data class CatalogItem(
     val product: Product,
     val amount: Int,
 )
-
 interface CatalogItemCacheRepository : MongoRepository<CatalogItem, UUID> {
     @Query("{ amount: {\$gt: 0}}")
     fun findAllWithExistingAmount(pageable: Pageable): Page<CatalogItem>
