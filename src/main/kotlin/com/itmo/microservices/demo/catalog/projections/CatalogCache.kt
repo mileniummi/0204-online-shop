@@ -44,14 +44,9 @@ class CatalogExistingCache(
                     catalogItemCacheRepository.findById(event.catalogItemId)
                 }
                 if (catalogItem.isPresent) {
+                    catalogItem.get().amount = event.amount
                     withContext(Dispatchers.IO) {
-                        catalogItemCacheRepository.save(
-                            CatalogItem(
-                                event.catalogItemId,
-                                catalogItem.get().product,
-                                event.amount
-                            )
-                        )
+                        catalogItemCacheRepository.save(catalogItem.get())
                     }
                 }
                 logger.info(
@@ -67,7 +62,7 @@ data class CatalogItem(
     @Id
     val id: UUID,
     val product: Product,
-    val amount: Int,
+    var amount: Int,
 )
 interface CatalogItemCacheRepository : MongoRepository<CatalogItem, UUID> {
     @Query("{ amount: {\$gt: 0}}")

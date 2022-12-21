@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.time.Instant
 import java.util.UUID
 
 @RestController
@@ -75,4 +76,34 @@ class OrdersController(
     ) =
         orderService.addProductToOrder(amount, order_id, item_id)
 
+    @PostMapping("{order_id}/delivery")
+    @Operation(
+        summary = "Add item to order",
+        responses = [
+            ApiResponse(
+                description = "OK",
+                responseCode = "200",
+            ),
+            ApiResponse(description = "Order not found", responseCode = "404"),
+            ApiResponse(description = "Unauthorized", responseCode = "403")
+        ],
+        security = [SecurityRequirement(name = "bearerAuth")]
+    )
+    fun setOrderDeliverySlot(@RequestParam slot: Instant, @PathVariable order_id: UUID) =
+        orderService.setOrderDeliverySlot(slot, order_id)
+
+    @PostMapping("{order_id}/payment")
+    @Operation(
+        summary = "Add item to order",
+        responses = [
+            ApiResponse(
+                description = "OK",
+                responseCode = "200",
+            ),
+            ApiResponse(description = "Order not found", responseCode = "404"),
+            ApiResponse(description = "Unauthorized", responseCode = "403")
+        ],
+        security = [SecurityRequirement(name = "bearerAuth")]
+    )
+    fun processOrderPayment(@PathVariable order_id: UUID) = orderService.processOrderPayment(order_id)
 }

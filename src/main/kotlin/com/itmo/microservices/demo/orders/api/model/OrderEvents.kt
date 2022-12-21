@@ -26,5 +26,6 @@ data class OrderUpdatedEvent(
 @DomainEvent(name = ORDER_DELIVERY_SLOT_UPDATED)
 data class OrderDeliverySlotUpdatedEvent(
     val orderId: UUID,
-    val deliverySlot: Instant
+    val deliverySlot: Instant,
+    val status: OrderStatus,
 ) : Event<OrderAggregate>(name = ORDER_DELIVERY_SLOT_UPDATED)

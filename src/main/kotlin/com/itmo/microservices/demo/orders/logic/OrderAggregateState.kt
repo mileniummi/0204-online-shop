@@ -2,8 +2,12 @@ package com.itmo.microservices.demo.orders.logic
 
 import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
 import com.itmo.microservices.demo.orders.api.model.*
+import com.itmo.microservices.demo.payment.api.model.PaymentRecordLog
+import com.itmo.microservices.demo.payment.api.model.PaymentStatus
+import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
 import ru.quipy.core.annotations.StateTransitionFunc
 import ru.quipy.domain.AggregateState
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
@@ -11,7 +15,9 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     private lateinit var orderId: UUID
     var createdAt: Long = System.currentTimeMillis()
     var updatedAt: Long = System.currentTimeMillis()
-
+    internal var status: OrderStatus = OrderStatus.COLLECTING
+    var paymentHistory: MutableList<PaymentRecordLog> = mutableListOf()
+    var itemsMap: Map<UUID, Int > = mapOf()
     override fun getId() = orderId
 
     fun createOrder(order: CreateOrderRequest): OrderCreatedEvent {
@@ -22,25 +28,47 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
         )
     }
 
-    fun updateOrder(orderId: UUID, itemsMap:  Map<UUID, Int>): OrderUpdatedEvent {
+    fun updateOrder(orderId: UUID, itemsMap: Map<UUID, Int>): OrderUpdatedEvent {
+        if (status !== OrderStatus.COLLECTING) {
+            throw IllegalStateException("Order can be updated only on status collecting")
+        }
         return OrderUpdatedEvent(orderId, itemsMap)
     }
 
     fun updateOrderDeliverySlot(orderId: UUID, deliverySlot: Instant): OrderDeliverySlotUpdatedEvent {
-        return OrderDeliverySlotUpdatedEvent(orderId, deliverySlot)
+        if (status !== OrderStatus.COLLECTING) {
+            throw IllegalStateException("Order delivery slot can be updated only on status collecting")
+        }
+        return OrderDeliverySlotUpdatedEvent(orderId, deliverySlot, OrderStatus.BOOKED)
+    }
+
+    fun processOrderPayment(orderId: UUID, price: BigDecimal): PaymentSuccessEvent {
+        if (status !== OrderStatus.BOOKED) {
+            throw IllegalStateException("Order can be paid only on status booked")
+        }
+        return PaymentSuccessEvent(orderId,Instant.now(), PaymentStatus.SUCCESS, price, UUID.randomUUID())
     }
 
     @StateTransitionFunc
-    fun createOrder (event: OrderCreatedEvent){
+    fun createOrder(event: OrderCreatedEvent) {
         orderId = event.orderId
+        itemsMap = event.itemsMap
     }
+
     @StateTransitionFunc
-    fun updateOrder (event: OrderUpdatedEvent){
+    fun updateOrder(event: OrderUpdatedEvent) {
         orderId = event.orderId
     }
 
     @StateTransitionFunc
-    fun updateOrderDeliverySlot(event: OrderDeliverySlotUpdatedEvent){
+    fun updateOrderDeliverySlot(event: OrderDeliverySlotUpdatedEvent) {
+        status = OrderStatus.BOOKED
         orderId = event.orderId
+    }
+
+    @StateTransitionFunc
+    fun processOrderPayment(event: PaymentSuccessEvent){
+        status = OrderStatus.PAID
+        paymentHistory.add(PaymentRecordLog(event.timestamp, event.amount, event.status, event.transactionId))
     }
 }
