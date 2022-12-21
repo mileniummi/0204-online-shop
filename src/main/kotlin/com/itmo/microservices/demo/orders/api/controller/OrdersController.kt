@@ -1,13 +1,9 @@
 package com.itmo.microservices.demo.orders.api.controller
 
 import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
-import com.itmo.microservices.demo.orders.api.model.OrderCreatedEvent
 import com.itmo.microservices.demo.orders.api.service.OrderService
-import com.itmo.microservices.demo.orders.projections.OrderCache
 import com.itmo.microservices.demo.orders.projections.OrderRepository
 import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.media.Content
-import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.springframework.web.bind.annotation.GetMapping
@@ -33,7 +29,6 @@ class OrdersController(
             ApiResponse(
                 description = "OK",
                 responseCode = "200",
-                content = [Content(schema = Schema(implementation = OrderCache::class))]
             ),
             ApiResponse(description = "Order not found", responseCode = "404"),
             ApiResponse(description = "Unauthorized", responseCode = "403")
@@ -49,7 +44,6 @@ class OrdersController(
             ApiResponse(
                 description = "OK",
                 responseCode = "201",
-                content = [Content(schema = Schema(implementation = OrderCreatedEvent::class))]
             ),
             ApiResponse(description = "Bad request", responseCode = "400"),
             ApiResponse(description = "Order item does not exist.", responseCode = "404"),
@@ -70,7 +64,6 @@ class OrdersController(
             ApiResponse(
                 description = "OK",
                 responseCode = "200",
-                content = [Content(schema = Schema(implementation = OrderCache::class))]
             ),
             ApiResponse(description = "Order not found", responseCode = "404"),
             ApiResponse(description = "Unauthorized", responseCode = "403")
