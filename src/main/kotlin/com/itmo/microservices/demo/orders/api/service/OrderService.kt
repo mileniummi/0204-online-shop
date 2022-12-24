@@ -3,10 +3,17 @@ package com.itmo.microservices.demo.orders.api.service
 import com.itmo.microservices.demo.catalog.api.model.CatalogAggregate
 import com.itmo.microservices.demo.catalog.api.service.CatalogItemService
 import com.itmo.microservices.demo.catalog.logic.CatalogAggregateState
+import com.itmo.microservices.demo.common.exceptions.BadRequestException
+import com.itmo.microservices.demo.common.exceptions.EntityViolationException
+import com.itmo.microservices.demo.common.exceptions.NotFoundException
 import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
+import com.itmo.microservices.demo.orders.api.model.OrderCreatedEvent
+import com.itmo.microservices.demo.orders.api.model.OrderDeliverySlotUpdatedEvent
+import com.itmo.microservices.demo.orders.api.model.OrderUpdatedEvent
 import com.itmo.microservices.demo.orders.logic.OrderAggregateState
 import com.itmo.microservices.demo.orders.projections.OrderRepository
+import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -24,16 +31,18 @@ class OrderService(
     private val orderRepository: OrderRepository
 ) {
 
-    fun createOrder(order: CreateOrderRequest): ResponseEntity<Any> {
+    fun createOrder(order: CreateOrderRequest): ResponseEntity<OrderCreatedEvent> {
+        if (order.itemsMap.isEmpty()) {
+            throw BadRequestException("Attempt to create order with no items.")
+        }
         for (orderCatalogItem in order.itemsMap) {
             if (orderCatalogItem.value == 0) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Attempt to create order with 0 items.")
+                throw BadRequestException("Attempt to create order with 0 items.")
             }
             val catalogItem = catalogEsService.getState(orderCatalogItem.key)
-                ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Order item does not exist.")
+                ?: throw NotFoundException("Order item does not exist.")
             if (orderCatalogItem.value > catalogItem.amount) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Order item amount is greater than existing item amount in warehouse.")
+                throw EntityViolationException("Order item amount is greater than existing item amount in warehouse.")
             }
         }
         return ResponseEntity(
@@ -42,17 +51,14 @@ class OrderService(
         )
     }
 
-    fun addProductToOrder(amount: Int, order_id: UUID, item_id: UUID): ResponseEntity<out Any> {
-        orderEsService.getState(order_id) ?: return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body("Order does not exist.")
-        val catalogItem = catalogEsService.getState(item_id) ?: return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body("Item does not exist.")
+    fun addProductToOrder(amount: Int, order_id: UUID, item_id: UUID): ResponseEntity<OrderUpdatedEvent> {
+        orderEsService.getState(order_id) ?: throw NotFoundException("Order does not exist.")
+        val catalogItem = catalogEsService.getState(item_id) ?: throw NotFoundException("Item does not exist.")
         if (amount == 0) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Attempt to update order with 0 items.")
+            throw EntityViolationException("Attempt to update order with 0 items.")
         }
         if (catalogItem.amount < amount) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body("Order item amount is greater than existing item amount in warehouse.")
+            throw EntityViolationException("Order item amount is greater than existing item amount in warehouse.")
         }
         return ResponseEntity(
             orderEsService.create { orderState -> orderState.updateOrder(order_id, mapOf(item_id to amount)) },
@@ -60,33 +66,29 @@ class OrderService(
         )
     }
 
-    fun setOrderDeliverySlot(slot: Instant, order_id: UUID): ResponseEntity<out Any> {
+    fun setOrderDeliverySlot(slot: Instant, order_id: UUID): ResponseEntity<OrderDeliverySlotUpdatedEvent> {
         // todo remake find
         val existingOrderWithThisSlot = orderRepository.findByDeliverySlot(slot, slot.plusSeconds(20))
-        if (existingOrderWithThisSlot.isPresent){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body("Delivery slot is already taken.")
+        if (existingOrderWithThisSlot.isPresent) {
+            throw BadRequestException("Delivery slot is already taken.")
         }
         // update order
-        val order = orderEsService.getState(order_id) ?: return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body("Order does not exist.")
+        val order = orderEsService.getState(order_id) ?: throw NotFoundException("Order does not exist.")
         return ResponseEntity(
             orderEsService.update(order.getId()) { orderState -> orderState.updateOrderDeliverySlot(order_id, slot) },
             HttpStatus.OK
         )
     }
 
-    fun processOrderPayment(order_id: UUID): ResponseEntity<out Any> {
-        val order = orderEsService.getState(order_id) ?: return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body("Order does not exist.")
+    fun processOrderPayment(order_id: UUID): ResponseEntity<PaymentSuccessEvent> {
+        val order = orderEsService.getState(order_id) ?: throw NotFoundException("Order does not exist.")
 
         val items = order.itemsMap
         var totalPrice = BigDecimal(0)
-        for (item in items){
+        for (item in items) {
             val catalogItem = catalogItemService.getCatalogItemById(item.key)
             if (catalogItem.isEmpty) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Order item does not exist.")
+                throw NotFoundException("Order item does not exist.")
             }
             totalPrice += catalogItem.get().product.price * BigDecimal(item.value)
         }

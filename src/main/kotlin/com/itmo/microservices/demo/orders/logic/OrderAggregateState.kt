@@ -1,5 +1,6 @@
 package com.itmo.microservices.demo.orders.logic
 
+import com.itmo.microservices.demo.common.exceptions.EntityViolationException
 import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
 import com.itmo.microservices.demo.orders.api.model.*
 import com.itmo.microservices.demo.payment.api.model.PaymentRecordLog
@@ -30,21 +31,21 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
 
     fun updateOrder(orderId: UUID, itemsMap: Map<UUID, Int>): OrderUpdatedEvent {
         if (status !== OrderStatus.COLLECTING) {
-            throw IllegalStateException("Order can be updated only on status collecting")
+            throw EntityViolationException("Order can be updated only on status collecting")
         }
         return OrderUpdatedEvent(orderId, itemsMap)
     }
 
     fun updateOrderDeliverySlot(orderId: UUID, deliverySlot: Instant): OrderDeliverySlotUpdatedEvent {
         if (status !== OrderStatus.COLLECTING) {
-            throw IllegalStateException("Order delivery slot can be updated only on status collecting")
+            throw EntityViolationException("Order delivery slot can be updated only on status collecting")
         }
         return OrderDeliverySlotUpdatedEvent(orderId, deliverySlot, OrderStatus.BOOKED)
     }
 
     fun processOrderPayment(orderId: UUID, price: BigDecimal): PaymentSuccessEvent {
         if (status !== OrderStatus.BOOKED) {
-            throw IllegalStateException("Order can be paid only on status booked")
+            throw EntityViolationException("Order can be paid only on status booked")
         }
         return PaymentSuccessEvent(orderId,Instant.now(), PaymentStatus.SUCCESS, price, UUID.randomUUID())
     }

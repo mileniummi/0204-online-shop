@@ -3,7 +3,7 @@ package com.itmo.microservices.demo.users.impl.service
 import com.google.common.eventbus.EventBus
 import com.itmo.microservices.commonlib.annotations.InjectEventLogger
 import com.itmo.microservices.commonlib.logging.EventLogger
-import com.itmo.microservices.demo.common.exception.NotFoundException
+import com.itmo.microservices.demo.common.exceptions.NotFoundException
 import com.itmo.microservices.demo.users.api.messaging.UserCreatedEvent
 import com.itmo.microservices.demo.users.api.messaging.UserDeletedEvent
 import com.itmo.microservices.demo.users.api.service.UserService

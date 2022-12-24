@@ -103,6 +103,6 @@ data class OrderCache(
 )
 
 interface OrderRepository : MongoRepository<OrderCache, UUID>{
-    @Query("{ deliverySlot: {\$gt: deliverySlotStart, \$lt: deliverySlotEnd}}")
+    @Query("{ deliverySlot: {\$gte: ?0, \$lte: ?1}}")
     fun findByDeliverySlot(deliverySlotStart: Instant, deliverySlotEnd: Instant): Optional<OrderCache>
 }
