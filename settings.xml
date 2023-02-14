@@ -32,7 +32,7 @@
                 </repository>
                 <repository>
                     <id>github</id>
-                    <url>https://maven.pkg.github.com/andrush/tiny-event-sourcing</url>
+                    <url>https://maven.pkg.github.com/andrsuh/tiny-event-sourcing</url>
                     <snapshots>
                         <enabled>true</enabled>
                     </snapshots>

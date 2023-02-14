@@ -22,18 +22,31 @@
         <kotlin.version>1.6.10</kotlin.version>
         <guava.version>30.1.1-jre</guava.version>
         <jjwt.version>0.9.1</jjwt.version>
-        <common-lib.version>0.9.0-SNAPSHOT</common-lib.version>
+        <common-lib.version>0.8.0-SNAPSHOT</common-lib.version>
         <buildnumber-maven-plugin.version>1.4</buildnumber-maven-plugin.version>
         <jib-maven-plugin.version>2.8.0</jib-maven-plugin.version>
         <tiny-event-source-lib.version>2.0.1-SNAPSHOT</tiny-event-source-lib.version>
     </properties>
-         
+
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ru.quipy</groupId>
+            <artifactId>tiny-event-sourcing-spring-boot-starter</artifactId>
+            <version>2.0.1-SNAPSHOT</version>
+        </dependency>
 
         <dependency>
             <groupId>ru.quipy</groupId>
-            <artifactId>tiny-event-sourcing-lib</artifactId>
-            <version>${tiny-event-source-lib.version}</version>
+            <artifactId>tiny-event-sourcing-mongodb-operations</artifactId>
+            <version>2.0.1-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -159,7 +172,7 @@
             </snapshots>
         </repository>
     </repositories>
-    
+
     <build>
         <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
         <testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
@@ -220,7 +233,7 @@
                     <target>${java.version}</target>
                 </configuration>
             </plugin>
-                 
+
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
@@ -245,10 +258,10 @@
                 <configuration>
                     <to>
                         <image>${env.DOCKER_REPO_HOST_INTERNAL}/${project.artifactId}</image>
-                        <tags>${scmBranch}_${project.version}</tags>
+                        <tags>main_${project.version}</tags>
                     </to>
                     <allowInsecureRegistries>true</allowInsecureRegistries>
-                    
+
                 </configuration>
                 <executions>
                     <execution>

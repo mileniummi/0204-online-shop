@@ -3,8 +3,8 @@ package com.itmo.microservices.demo.auth.impl.service
 import com.itmo.microservices.demo.auth.api.model.AuthenticationRequest
 import com.itmo.microservices.demo.auth.api.model.AuthenticationResult
 import com.itmo.microservices.demo.auth.api.service.AuthService
-import com.itmo.microservices.demo.common.exception.AccessDeniedException
-import com.itmo.microservices.demo.common.exception.NotFoundException
+import com.itmo.microservices.demo.common.exceptions.AccessDeniedException
+import com.itmo.microservices.demo.common.exceptions.NotFoundException
 import com.itmo.microservices.demo.users.api.service.UserService
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.userdetails.UserDetails
