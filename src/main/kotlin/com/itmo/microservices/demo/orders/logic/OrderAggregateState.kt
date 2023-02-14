@@ -16,7 +16,7 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     private lateinit var orderId: UUID
     var createdAt: Long = System.currentTimeMillis()
     var updatedAt: Long = System.currentTimeMillis()
-    internal var status: OrderStatus = OrderStatus.COLLECTING
+    private var status: OrderStatus = OrderStatus.COLLECTING
     var paymentHistory: MutableList<PaymentRecordLog> = mutableListOf()
     var itemsMap: Map<UUID, Int > = mapOf()
     override fun getId() = orderId

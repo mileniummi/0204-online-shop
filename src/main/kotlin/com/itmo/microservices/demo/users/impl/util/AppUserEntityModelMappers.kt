@@ -6,7 +6,7 @@ import com.itmo.microservices.demo.users.impl.entity.AppUser
 fun AppUser.toModel(): AppUserModel = kotlin.runCatching {
     AppUserModel(
         username = this.username!!,
-        name = this.name!!,
+        firstName = this.name!!,
         surname = this.surname!!,
         email = this.email!!,
         password = this.password!!

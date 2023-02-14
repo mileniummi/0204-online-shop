@@ -1,4 +1,4 @@
-package com.itmo.microservices.demo.users.api.model
+package com.itmo.microservices.demo.users.api.dto
 
 data class RegistrationRequest(
         val username: String,
