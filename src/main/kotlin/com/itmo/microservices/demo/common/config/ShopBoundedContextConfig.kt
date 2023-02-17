@@ -1,5 +1,7 @@
 package com.itmo.microservices.demo.common.config
 
+import com.itmo.microservices.demo.booking.api.model.BookingAggregate
+import com.itmo.microservices.demo.booking.logic.BookingAggregateState
 import com.itmo.microservices.demo.catalog.api.model.CatalogAggregate
 import com.itmo.microservices.demo.catalog.logic.CatalogAggregateState
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
@@ -37,4 +39,8 @@ class ShopBoundedContextConfig {
     @Bean
     fun orderEsService() =
         eventSourcingServiceFactory.create<UUID, OrderAggregate, OrderAggregateState>()
+
+    @Bean
+    fun bookingEsService() =
+            eventSourcingServiceFactory.create<UUID, BookingAggregate, BookingAggregateState>()
 }
