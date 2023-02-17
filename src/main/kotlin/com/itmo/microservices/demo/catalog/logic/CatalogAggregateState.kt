@@ -3,6 +3,7 @@ package com.itmo.microservices.demo.catalog.logic
 import com.itmo.microservices.demo.catalog.api.model.CatalogAggregate
 import com.itmo.microservices.demo.catalog.api.model.CatalogItemAmountUpdatedEvent
 import com.itmo.microservices.demo.catalog.api.model.CatalogItemCreatedEvent
+import com.itmo.microservices.demo.common.exceptions.EntityViolationException
 import com.itmo.microservices.demo.products.api.model.Product
 import ru.quipy.core.annotations.StateTransitionFunc
 import ru.quipy.domain.AggregateState
@@ -25,7 +26,7 @@ class CatalogAggregateState : AggregateState<UUID, CatalogAggregate> {
         }
         val newAmount = this.amount - amount
         if (newAmount < 0){
-            throw IllegalStateException("Attempt to take more item amount than exists.")
+            throw EntityViolationException("Attempt to take more item amount than exists.")
         }
         return CatalogItemAmountUpdatedEvent(catalogId, newAmount )
     }
