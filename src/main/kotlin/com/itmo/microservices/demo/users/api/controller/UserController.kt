@@ -1,8 +1,8 @@
 package com.itmo.microservices.demo.users.api.controller
 
-import com.itmo.microservices.demo.users.api.model.AppUserModel
 import com.itmo.microservices.demo.users.api.dto.RegistrationRequest
 import com.itmo.microservices.demo.users.api.service.UserService
+import com.itmo.microservices.demo.users.projections.AppUserCache
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -35,7 +35,7 @@ class UserController(private val userService: UserService) {
         ],
         security = [SecurityRequirement(name = "bearerAuth")]
     )
-    fun getAccountData(@Parameter(hidden = true) @AuthenticationPrincipal user: UserDetails): AppUserModel =
+    fun getAccountData(@Parameter(hidden = true) @AuthenticationPrincipal user: UserDetails): AppUserCache =
             userService.getAccountData(user)
 
     @DeleteMapping("/me")

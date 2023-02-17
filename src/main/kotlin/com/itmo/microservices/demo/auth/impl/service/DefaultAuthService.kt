@@ -4,7 +4,6 @@ import com.itmo.microservices.demo.auth.api.model.AuthenticationRequest
 import com.itmo.microservices.demo.auth.api.model.AuthenticationResult
 import com.itmo.microservices.demo.auth.api.service.AuthService
 import com.itmo.microservices.demo.common.exceptions.AccessDeniedException
-import com.itmo.microservices.demo.common.exceptions.NotFoundException
 import com.itmo.microservices.demo.users.api.service.UserService
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.userdetails.UserDetails
@@ -18,8 +17,6 @@ class DefaultAuthService(private val userService: UserService,
 
     override fun authenticate(request: AuthenticationRequest): AuthenticationResult {
         val user = userService.findUser(request.username)
-                ?: throw NotFoundException("User with username ${request.username} not found")
-
         if (!passwordEncoder.matches(request.password, user.password))
             throw AccessDeniedException("Invalid password")
 

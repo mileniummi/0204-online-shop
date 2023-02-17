@@ -1,5 +1,8 @@
 package com.itmo.microservices.demo.users.projections
 
+import org.springframework.security.core.userdetails.User
+import org.springframework.security.core.userdetails.UserDetails
+
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.itmo.microservices.demo.users.api.model.UserAggregate
 import com.itmo.microservices.demo.users.api.model.UserCreatedEvent
@@ -20,7 +23,7 @@ class UserExistingCache(
     private val userRepository: UserCacheRepository,
     private val subscriptionsManager: AggregateSubscriptionsManager
 ) {
-    private var logger: Logger = LoggerFactory.getLogger(UserCache::class.java)
+    private var logger: Logger = LoggerFactory.getLogger(AppUserCache::class.java)
 
     @PostConstruct
     fun init() {
@@ -28,7 +31,7 @@ class UserExistingCache(
             `when`(UserCreatedEvent::class) { event ->
                 withContext(Dispatchers.IO) {
                     userRepository.save(
-                        UserCache(
+                        AppUserCache(
                             event.id,
                             event.username,
                             event.firstname,
@@ -47,17 +50,19 @@ class UserExistingCache(
 
 
 @Document("transactions-user-cache")
-data class UserCache(
+data class AppUserCache(
     @Id
-    val id: UUID,
-    val username: String?,
-    val firstName: String?,
-    val surname: String?,
-    val email: String?,
+    val id: UUID? = null,
+    val username: String,
+    val name: String,
+    val surname: String,
+    val email: String,
     @JsonIgnore
-    val password: String?
-)
+    var password: String
+) {
+    fun userDetails(): UserDetails = User(username, password, emptyList())
+}
 
-interface UserCacheRepository : MongoRepository<UserCache, UUID> {
-    fun getUserCacheByUsername(username: String): Optional<UserCache>
+interface UserCacheRepository : MongoRepository<AppUserCache, UUID> {
+    fun getByUsername(username: String): Optional<AppUserCache>
 }
