@@ -1,6 +1,5 @@
 package com.itmo.microservices.demo.orders.projections
 
-import com.itmo.microservices.demo.catalog.projections.CatalogExistingCache
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
 import com.itmo.microservices.demo.orders.api.model.OrderCreatedEvent
 import com.itmo.microservices.demo.orders.api.model.OrderDeliverySlotUpdatedEvent
@@ -26,7 +25,7 @@ class OrderExistingCache(
     private val orderRepository: OrderRepository,
     private val subscriptionsManager: AggregateSubscriptionsManager,
 ) {
-    private var logger: Logger = LoggerFactory.getLogger(CatalogExistingCache::class.java)
+    private var logger: Logger = LoggerFactory.getLogger(OrderExistingCache::class.java)
 
     @PostConstruct
     fun init() {

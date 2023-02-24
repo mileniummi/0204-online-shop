@@ -1,5 +1,6 @@
 package com.itmo.microservices.demo.orders.api.controller
 
+import com.itmo.microservices.demo.booking.api.service.BookingService
 import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
 import com.itmo.microservices.demo.orders.api.service.OrderService
 import com.itmo.microservices.demo.orders.projections.OrderRepository
@@ -21,6 +22,7 @@ import java.util.UUID
 class OrdersController(
     private val orderRepository: OrderRepository,
     private val orderService: OrderService,
+    private val bookingService: BookingService,
 ) {
 
     @GetMapping("/{order_id}")
@@ -91,4 +93,19 @@ class OrdersController(
     )
     fun setOrderDeliverySlot(@RequestParam slot: Instant, @PathVariable order_id: UUID) =
         orderService.setOrderDeliverySlot(slot, order_id)
+
+    @PostMapping("{order_id}/bookings")
+    @Operation(
+        summary = "Book order",
+        responses = [
+            ApiResponse(
+                description = "OK",
+                responseCode = "200",
+            ),
+            ApiResponse(description = "Order not found", responseCode = "404"),
+            ApiResponse(description = "Unauthorized", responseCode = "403")
+        ],
+        security = [SecurityRequirement(name = "bearerAuth")]
+    )
+    fun bookOrder(@PathVariable order_id: UUID) = bookingService.processOrderBooking(order_id)
 }
