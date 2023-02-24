@@ -43,11 +43,11 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
         return OrderDeliverySlotUpdatedEvent(orderId, deliverySlot, OrderStatus.BOOKED)
     }
 
-    fun processOrderPayment(orderId: UUID, price: BigDecimal): PaymentSuccessEvent {
+    fun addPayment(paymentSuccessEvent: PaymentSuccessEvent): PaymentSuccessEvent {
         if (status !== OrderStatus.BOOKED) {
             throw EntityViolationException("Order can be paid only on status booked")
         }
-        return PaymentSuccessEvent(orderId,Instant.now(), PaymentStatus.SUCCESS, price, UUID.randomUUID())
+        return paymentSuccessEvent
     }
 
     @StateTransitionFunc
