@@ -79,30 +79,4 @@ class OrderService(
             HttpStatus.OK
         )
     }
-
-    fun processOrderPayment(order_id: UUID): ResponseEntity<PaymentSuccessEvent> {
-        val order = orderEsService.getState(order_id) ?: throw NotFoundException("Order does not exist.")
-
-        val items = order.itemsMap
-        var totalPrice = BigDecimal(0)
-        for (item in items) {
-            val catalogItem = catalogItemService.getCatalogItemById(item.key)
-            if (catalogItem.isEmpty) {
-                throw NotFoundException("Order item does not exist.")
-            }
-            totalPrice += catalogItem.get().product.price * BigDecimal(item.value)
-        }
-        for (orderCatalogItem in order.itemsMap) {
-            catalogEsService.update(orderCatalogItem.key) { catalogState ->
-                catalogState.updateCatalogItemAmount(
-                    orderCatalogItem.key,
-                    orderCatalogItem.value, false
-                )
-            }
-        }
-        return ResponseEntity(
-            orderEsService.update(order.getId()) { orderState -> orderState.processOrderPayment(order_id, totalPrice) },
-            HttpStatus.OK
-        )
-    }
 }

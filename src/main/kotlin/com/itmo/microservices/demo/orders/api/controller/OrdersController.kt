@@ -91,19 +91,4 @@ class OrdersController(
     )
     fun setOrderDeliverySlot(@RequestParam slot: Instant, @PathVariable order_id: UUID) =
         orderService.setOrderDeliverySlot(slot, order_id)
-
-    @PostMapping("{order_id}/payment")
-    @Operation(
-        summary = "Add item to order",
-        responses = [
-            ApiResponse(
-                description = "OK",
-                responseCode = "200",
-            ),
-            ApiResponse(description = "Order not found", responseCode = "404"),
-            ApiResponse(description = "Unauthorized", responseCode = "403")
-        ],
-        security = [SecurityRequirement(name = "bearerAuth")]
-    )
-    fun processOrderPayment(@PathVariable order_id: UUID) = orderService.processOrderPayment(order_id)
 }
