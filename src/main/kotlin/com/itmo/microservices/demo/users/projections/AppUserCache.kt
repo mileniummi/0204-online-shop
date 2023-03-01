@@ -34,9 +34,6 @@ class UserExistingCache(
                         AppUserCache(
                             event.id,
                             event.username,
-                            event.firstname,
-                            event.surname,
-                            event.email,
                             event.password
                         )
                     )
@@ -53,16 +50,13 @@ class UserExistingCache(
 data class AppUserCache(
     @Id
     val id: UUID? = null,
-    val username: String,
     val name: String,
-    val surname: String,
-    val email: String,
     @JsonIgnore
     var password: String
 ) {
-    fun userDetails(): UserDetails = User(username, password, emptyList())
+    fun userDetails(): UserDetails = User(name, password, emptyList())
 }
 
 interface UserCacheRepository : MongoRepository<AppUserCache, UUID> {
-    fun getByUsername(username: String): Optional<AppUserCache>
+    fun getByName(name: String): Optional<AppUserCache>
 }

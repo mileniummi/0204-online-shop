@@ -9,9 +9,6 @@ const val USER_DELETED = "USER_DELETED"
 @DomainEvent(name = USER_CREATED)
 data class UserCreatedEvent(
     val username: String,
-    val firstname: String,
-    val surname: String,
-    val email: String,
     val password: String
 ) : Event<UserAggregate>(name = USER_CREATED)
 

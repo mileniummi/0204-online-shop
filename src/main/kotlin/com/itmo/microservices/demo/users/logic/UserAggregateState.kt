@@ -17,7 +17,7 @@ class UserAggregateState : AggregateState<UUID, UserAggregate> {
     override fun getId() = userId
 
     fun registerUser(user: AppUserCache): UserCreatedEvent  =
-        UserCreatedEvent(user.username, user.name, user.surname, user.email, user.password)
+        UserCreatedEvent(user.name, user.password)
 
     fun deleteUser(username: String): UserDeletedEvent =
         UserDeletedEvent(username)

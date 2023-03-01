@@ -4,8 +4,8 @@ import com.itmo.microservices.demo.common.exceptions.EntityViolationException
 import com.itmo.microservices.demo.common.exceptions.NotFoundException
 import com.itmo.microservices.demo.users.api.service.UserService
 import com.itmo.microservices.demo.users.api.dto.RegistrationRequest
+import com.itmo.microservices.demo.users.api.dto.RegistrationResult
 import com.itmo.microservices.demo.users.api.model.UserAggregate
-import com.itmo.microservices.demo.users.api.model.UserCreatedEvent
 import com.itmo.microservices.demo.users.logic.UserAggregateState
 import com.itmo.microservices.demo.users.projections.AppUserCache
 import com.itmo.microservices.demo.users.projections.UserCacheRepository
@@ -26,15 +26,16 @@ class DefaultUserService(
 ) : UserService {
 
     override fun findUser(username: String): AppUserCache =
-        userCacheRepository.getByUsername(username).orElseThrow { NotFoundException("User does not exist") }
+        userCacheRepository.getByName(username).orElseThrow { NotFoundException("User does not exist") }
 
-    override fun registerUser(request: RegistrationRequest): ResponseEntity<UserCreatedEvent> {
-        val dbUser = userCacheRepository.getByUsername(request.username)
+    override fun registerUser(request: RegistrationRequest): ResponseEntity<RegistrationResult> {
+        val dbUser = userCacheRepository.getByName(request.name)
         if (dbUser.isPresent) {
             throw EntityViolationException("This username is already taken")
         }
+        val userCreatedEvent = userEsService.create { it.registerUser(request.toEntity()) }
         return ResponseEntity(
-            userEsService.create { it.registerUser(request.toEntity()) }, HttpStatus.CREATED
+           RegistrationResult(userCreatedEvent.id, userCreatedEvent.username) , HttpStatus.CREATED
         )
     }
 
@@ -55,10 +56,7 @@ class DefaultUserService(
 
     fun RegistrationRequest.toEntity(): AppUserCache =
         AppUserCache(
-            username = this.username,
             name = this.name,
-            surname = this.surname,
-            email = this.email,
             password = passwordEncoder.encode(this.password)
         )
 }

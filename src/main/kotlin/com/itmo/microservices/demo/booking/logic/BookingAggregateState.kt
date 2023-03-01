@@ -17,7 +17,7 @@ class BookingAggregateState : AggregateState<UUID, BookingAggregate>{
     private var failedBookingLogSet = mutableSetOf<UUID>()
 
     override fun getId() = bookingId
-    fun getFailedBookingLogs() = bookingLogSet
+    fun getFailedBookingLogs() = failedBookingLogSet
     fun createBookingItem(): BookingCreatedEvent {
         return BookingCreatedEvent(UUID.randomUUID(), setOf())
     }
