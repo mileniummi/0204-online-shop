@@ -1,9 +1,11 @@
 package com.itmo.microservices.demo.common.config
 
+import com.itmo.microservices.demo.OnlineShopDescriptor
 import com.itmo.microservices.demo.booking.api.model.BookingAggregate
 import com.itmo.microservices.demo.booking.logic.BookingAggregateState
 import com.itmo.microservices.demo.catalog.api.model.CatalogAggregate
 import com.itmo.microservices.demo.catalog.logic.CatalogAggregateState
+import com.itmo.microservices.demo.external.TpsExternalService
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
 import com.itmo.microservices.demo.orders.logic.OrderAggregateState
 import com.itmo.microservices.demo.products.api.model.ProductAggregate
@@ -15,6 +17,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import ru.quipy.core.AggregateRegistry
 import ru.quipy.core.EventSourcingServiceFactory
+import java.net.URL
 import java.util.*
 
 @Configuration
@@ -43,4 +46,12 @@ class ShopBoundedContextConfig {
     @Bean
     fun bookingEsService() =
             eventSourcingServiceFactory.create<UUID, BookingAggregate, BookingAggregateState>()
+
+    @Bean
+    fun tpsExternalService() =
+        TpsExternalService(OnlineShopDescriptor("online-shop", URL("http://localhost:8082")))
+
+    @Bean
+    fun OnlineShopDescriptor() =
+        OnlineShopDescriptor("online-shop", URL("http://localhost:8082"))
 }

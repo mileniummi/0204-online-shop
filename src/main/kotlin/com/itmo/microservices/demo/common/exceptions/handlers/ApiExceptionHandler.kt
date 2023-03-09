@@ -1,8 +1,5 @@
 package com.itmo.microservices.demo.common.exceptions.handlers
-import com.itmo.microservices.demo.common.exceptions.AccessDeniedException
-import com.itmo.microservices.demo.common.exceptions.BadRequestException
-import com.itmo.microservices.demo.common.exceptions.EntityViolationException
-import com.itmo.microservices.demo.common.exceptions.NotFoundException
+import com.itmo.microservices.demo.common.exceptions.*
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ControllerAdvice
@@ -41,6 +38,14 @@ class ApiExceptionHandler {
         return ResponseEntity(
             ApiException(e.message, HttpStatus.NOT_FOUND, ZonedDateTime.now(ZoneId.of("Z"))),
             HttpStatus.NOT_FOUND
+        )
+    }
+
+    @ExceptionHandler(value = [ExternalServiceException::class])
+    fun handleApiRequestException(e: ExternalServiceException): ResponseEntity<ApiException> {
+        return ResponseEntity(
+            ApiException(e.message, HttpStatus.FAILED_DEPENDENCY, ZonedDateTime.now(ZoneId.of("Z"))),
+            HttpStatus.FAILED_DEPENDENCY
         )
     }
 }
