@@ -92,7 +92,7 @@ class OrdersController(
         ],
         security = [SecurityRequirement(name = "bearerAuth")]
     )
-    fun setOrderDeliverySlot(@RequestParam slot: Instant, @PathVariable order_id: UUID) =
+    suspend fun setOrderDeliverySlot(@RequestParam slot: Instant, @PathVariable order_id: UUID) =
         orderService.setOrderDeliverySlot(slot, order_id)
 
     @PostMapping("{order_id}/bookings")

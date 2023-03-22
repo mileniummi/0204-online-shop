@@ -73,6 +73,11 @@
             <artifactId>spring-boot-starter-tomcat</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-coroutines-reactor</artifactId>
+            <version>1.5.1</version>
+        </dependency>
+        <dependency>
             <artifactId>tiny-event-sourcing-spring-boot-starter</artifactId>
             <groupId>ru.quipy</groupId>
             <version>${tiny-event-sourcing-spring-boot-starter.version}</version>

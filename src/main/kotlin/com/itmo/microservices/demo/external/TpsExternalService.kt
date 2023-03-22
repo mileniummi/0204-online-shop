@@ -1,11 +1,5 @@
 package com.itmo.microservices.demo.external
-
-import com.itmo.microservices.demo.OnlineShopDescriptor
-//import com.itmo.microservices.demo.external.communicator.SecretAwareExternalServiceApiCommunicator
 import org.springframework.stereotype.Service
-import java.util.UUID
-import java.util.concurrent.ForkJoinPool
-import javax.annotation.PostConstruct
 
 
 // TODO: add retries on error, better interface, not ResponseDto

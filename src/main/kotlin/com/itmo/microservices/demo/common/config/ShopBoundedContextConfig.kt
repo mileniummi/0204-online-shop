@@ -5,6 +5,8 @@ import com.itmo.microservices.demo.booking.api.model.BookingAggregate
 import com.itmo.microservices.demo.booking.logic.BookingAggregateState
 import com.itmo.microservices.demo.catalog.api.model.CatalogAggregate
 import com.itmo.microservices.demo.catalog.logic.CatalogAggregateState
+import com.itmo.microservices.demo.external.callbacks.logic.ExternalServiceCallbackAggregateState
+import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackAggregate
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
 import com.itmo.microservices.demo.orders.logic.OrderAggregateState
 import com.itmo.microservices.demo.products.api.model.ProductAggregate
@@ -41,6 +43,10 @@ class ShopBoundedContextConfig {
     @Bean
     fun orderEsService() =
         eventSourcingServiceFactory.create<UUID, OrderAggregate, OrderAggregateState>()
+
+    @Bean
+    fun externalServiceCallbackEsService() =
+        eventSourcingServiceFactory.create<UUID, ExternalServiceCallbackAggregate, ExternalServiceCallbackAggregateState>()
 
     @Bean
     fun bookingEsService() =
