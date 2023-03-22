@@ -5,5 +5,6 @@ import java.math.BigDecimal
 class AddCatalogItemRequest(
     val name: String,
     val description: String,
-    val price: BigDecimal, val amount: Int,
+    val price: BigDecimal,
+    val amount: Int,
 )
