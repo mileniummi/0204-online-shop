@@ -1,7 +1,7 @@
 package com.itmo.microservices.demo.delivery.api.conttroller
 
 import com.itmo.microservices.demo.delivery.api.service.DeliveryService
-import com.itmo.microservices.demo.external.TpsExternalService
+//import com.itmo.microservices.demo.external.TpsExternalService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
@@ -17,7 +17,7 @@ import java.util.UUID
 @RequestMapping("delivery")
 class DeliveriesController(
     private val deliveryService: DeliveryService,
-    private val tpsExternalService: TpsExternalService,
+//    private val tpsExternalService: TpsExternalService,
 ) {
 
     @Operation(
@@ -31,9 +31,9 @@ class DeliveriesController(
     @GetMapping("/slots")
     suspend fun getSlots(@RequestParam amount: Int): List<Instant> {
         // delete when postconstruct implemented
-        tpsExternalService.createProject("online-shop")
+        //tpsExternalService.createProject("online-shop")
         // ensure external service transaction was successful
-        tpsExternalService.getDeliverySlot(UUID.randomUUID())
+        //tpsExternalService.getDeliverySlot(UUID.randomUUID())
         //todo check if was successful
         return deliveryService.getSlots(amount)
     }

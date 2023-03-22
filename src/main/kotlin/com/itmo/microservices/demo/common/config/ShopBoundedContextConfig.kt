@@ -5,7 +5,6 @@ import com.itmo.microservices.demo.booking.api.model.BookingAggregate
 import com.itmo.microservices.demo.booking.logic.BookingAggregateState
 import com.itmo.microservices.demo.catalog.api.model.CatalogAggregate
 import com.itmo.microservices.demo.catalog.logic.CatalogAggregateState
-import com.itmo.microservices.demo.external.TpsExternalService
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
 import com.itmo.microservices.demo.orders.logic.OrderAggregateState
 import com.itmo.microservices.demo.products.api.model.ProductAggregate
@@ -46,10 +45,6 @@ class ShopBoundedContextConfig {
     @Bean
     fun bookingEsService() =
             eventSourcingServiceFactory.create<UUID, BookingAggregate, BookingAggregateState>()
-
-    @Bean
-    fun tpsExternalService() =
-        TpsExternalService(OnlineShopDescriptor("online-shop", URL("http://localhost:8082")))
 
     @Bean
     fun OnlineShopDescriptor() =
