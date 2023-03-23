@@ -5,7 +5,6 @@ import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
 import com.itmo.microservices.demo.orders.api.service.OrderService
 import com.itmo.microservices.demo.orders.projections.OrderRepository
 import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.springframework.web.bind.annotation.GetMapping
@@ -81,7 +80,7 @@ class OrdersController(
 
     @PostMapping("{order_id}/delivery")
     @Operation(
-        summary = "Add item to order",
+        summary = "Set order delivery slot",
         responses = [
             ApiResponse(
                 description = "OK",

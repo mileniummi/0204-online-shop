@@ -1,10 +1,9 @@
-package com.itmo.microservices.demo.external
+package com.itmo.microservices.demo.external.tps
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.features.json.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import java.util.UUID
 

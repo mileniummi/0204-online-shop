@@ -1,4 +1,4 @@
-package com.itmo.microservices.demo.external
+package com.itmo.microservices.demo.external.tps
 import org.springframework.stereotype.Service
 
 

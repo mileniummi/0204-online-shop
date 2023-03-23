@@ -26,8 +26,8 @@ class ExternalServiceCallbackController(
             )
         ],
     )
-    fun handleCallback(@RequestBody callback: CallbackResult) {
-        println(callback)
-        externalServiceCallbackEsService.create { it.createCallback(callback) }
-    }
+    fun handleCallback(@RequestBody callback: CallbackResult) =
+        externalServiceCallbackEsService.create {
+            it.createCallback(callback)
+        }
 }

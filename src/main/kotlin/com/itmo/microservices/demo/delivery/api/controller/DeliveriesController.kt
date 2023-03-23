@@ -1,7 +1,6 @@
-package com.itmo.microservices.demo.delivery.api.conttroller
+package com.itmo.microservices.demo.delivery.api.controller
 
 import com.itmo.microservices.demo.delivery.api.service.DeliveryService
-//import com.itmo.microservices.demo.external.TpsExternalService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
