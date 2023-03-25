@@ -44,8 +44,8 @@ class ApiExceptionHandler {
     @ExceptionHandler(value = [ExternalServiceException::class])
     fun handleApiRequestException(e: ExternalServiceException): ResponseEntity<ApiException> {
         return ResponseEntity(
-            ApiException(e.message, HttpStatus.FAILED_DEPENDENCY, ZonedDateTime.now(ZoneId.of("Z"))),
-            HttpStatus.FAILED_DEPENDENCY
+            ApiException(e.message, HttpStatus.SERVICE_UNAVAILABLE, ZonedDateTime.now(ZoneId.of("Z"))),
+            HttpStatus.SERVICE_UNAVAILABLE
         )
     }
 }
