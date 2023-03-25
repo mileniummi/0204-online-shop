@@ -7,6 +7,7 @@ import com.itmo.microservices.demo.common.exceptions.BadRequestException
 import com.itmo.microservices.demo.common.exceptions.EntityViolationException
 import com.itmo.microservices.demo.common.exceptions.NotFoundException
 import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
+import com.itmo.microservices.demo.orders.api.dto.OrderResponse
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
 import com.itmo.microservices.demo.orders.api.model.OrderCreatedEvent
 import com.itmo.microservices.demo.orders.api.model.OrderDeliverySlotUpdatedEvent
@@ -31,22 +32,31 @@ class OrderService(
     private val orderRepository: OrderRepository
 ) {
 
-    fun createOrder(order: CreateOrderRequest): ResponseEntity<OrderCreatedEvent> {
-        if (order.itemsMap.isEmpty()) {
-            throw BadRequestException("Attempt to create order with no items.")
-        }
-        for (orderCatalogItem in order.itemsMap) {
-            if (orderCatalogItem.value == 0) {
-                throw BadRequestException("Attempt to create order with 0 items.")
-            }
-            val catalogItem = catalogEsService.getState(orderCatalogItem.key)
-                ?: throw NotFoundException("Order item does not exist.")
-            if (orderCatalogItem.value > catalogItem.amount) {
-                throw EntityViolationException("Order item amount is greater than existing item amount in warehouse.")
-            }
-        }
+    fun createOrder(order: CreateOrderRequest?): ResponseEntity<OrderResponse> {
+        println("Create new order")
+//        if(order?.itemsMap != null) {
+//            for (orderCatalogItem in order.itemsMap) {
+//                if (orderCatalogItem.value == 0) {
+//                    throw BadRequestException("Attempt to create order with 0 items.")
+//                }
+//                val catalogItem = catalogEsService.getState(orderCatalogItem.key)
+//                    ?: throw NotFoundException("Order item does not exist.")
+//                if (orderCatalogItem.value > catalogItem.amount) {
+//                    throw EntityViolationException("Order item amount is greater than existing item amount in warehouse.")
+//                }
+//            }
+//        }
+        val o = orderEsService.create { orderState: OrderAggregateState -> orderState.createOrder(mapOf()) }
+        println(o)
+        val resp = OrderResponse(
+            id = o.orderId,
+            timeCreated = o.timeCreated,
+            itemsMap = mapOf(),
+            deliveryDuration = null,
+            paymentHistory = listOf(),
+        )
         return ResponseEntity(
-            orderEsService.create { orderState: OrderAggregateState -> orderState.createOrder(order) },
+            resp,
             HttpStatus.CREATED
         )
     }

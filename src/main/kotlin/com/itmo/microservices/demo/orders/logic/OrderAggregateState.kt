@@ -21,11 +21,11 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     var itemsMap: Map<UUID, Int > = mapOf()
     override fun getId() = orderId
 
-    fun createOrder(order: CreateOrderRequest): OrderCreatedEvent {
+    fun createOrder(itemsMap: Map<UUID, Int>): OrderCreatedEvent {
         return OrderCreatedEvent(
             UUID.randomUUID(),
             System.currentTimeMillis(), OrderStatus.COLLECTING,
-            order.itemsMap,
+            itemsMap,
         )
     }
 
