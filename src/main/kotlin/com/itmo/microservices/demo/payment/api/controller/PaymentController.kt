@@ -49,7 +49,7 @@ class PaymentController(
         security = [SecurityRequirement(name = "bearerAuth")]
     )
     fun getOrderFinLog(
-        @RequestParam(required = false) orderId: UUID?,
+        @RequestParam orderId: UUID,
         @AuthenticationPrincipal user: UserDetails
     ): ResponseEntity<List<UserAccountFinancialLogRecordDto>> = paymentService.getOrderFinLog(orderId, user)
 }

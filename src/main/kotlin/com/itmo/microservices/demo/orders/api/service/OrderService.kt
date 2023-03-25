@@ -9,6 +9,7 @@ import com.itmo.microservices.demo.common.exceptions.NotFoundException
 import com.itmo.microservices.demo.external.callbacks.dto.CallbackStatus
 import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackAggregate
 import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackCreatedEvent
+import com.itmo.microservices.demo.external.tps.ResponseDto
 import com.itmo.microservices.demo.external.tps.TpsExternalService
 import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
 import com.itmo.microservices.demo.orders.api.dto.OrderResponse
@@ -20,6 +21,8 @@ import com.itmo.microservices.demo.orders.logic.OrderAggregateState
 import com.itmo.microservices.demo.utils.ConditionAwaiter
 import kotlinx.coroutines.sync.Mutex
 import com.itmo.microservices.demo.orders.projections.OrderRepository
+import com.itmo.microservices.demo.payment.api.model.PaymentStatus
+import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
 import kotlinx.coroutines.runBlocking
 
 import org.springframework.http.HttpStatus
@@ -27,6 +30,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import ru.quipy.core.EventSourcingService
 import ru.quipy.streams.AggregateSubscriptionsManager
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -77,44 +81,44 @@ class OrderService(
 
     fun setOrderDeliverySlot(slot: Int, orderId: UUID): ResponseEntity<Unit> {
         // update order
+        println("Set slot = $slot")
         val order = orderEsService.getState(orderId) ?: throw NotFoundException("Order does not exist.")
         val tpsResp = runBlocking { tpsExternalService.createDelivery("Super address") }
-//        val mutex = Mutex(true)
-//        subscriptionsManager.createSubscriber(
-//            ExternalServiceCallbackAggregate::class, "::callback-subscriber-${response.id}"
-//        ) {
-//            `when`(ExternalServiceCallbackCreatedEvent::class) { event ->
-//                if (event.transactionId == response.id) {
-//                    status = event.status
-//                    mutex.unlock()
-//                }
-//            }
-//        }
-//        ConditionAwaiter.awaitAtMost(10, TimeUnit.SECONDS).condition {
-//            mutex.tryLock()
-//        }.onSuccess {
-//            if (status === CallbackStatus.FAILURE) {
-//                throw ExternalServiceException("Can't set order delivery slot. Request denied by external service.")
-//            }
-//            if (status == CallbackStatus.SUCCESS) {
-//                orderEsService.update(order.getId()) { orderState ->
-//                    orderState.updateOrderDeliverySlot(
-//                        order_id,
-//                        slot
-//                    )
-//                }
-//            }
-//        }.onFailure {
-//            throw ExternalServiceException(it?.message)
-//        }.startWaiting()
-//
-//        subscriptionsManager.destroy()
+        runBlocking { waitForDelivery(tpsResp, orderId, slot) }
 
-        orderEsService.update(order.getId())
-            { orderState -> orderState.updateOrderDeliverySlot(orderId, tpsResp.id, slot) }
         return ResponseEntity(
             Unit,
             HttpStatus.OK
         )
+    }
+
+    private suspend fun waitForDelivery(delivery: ResponseDto, orderId: UUID, slot: Int) {
+        val mutex = Mutex(true)
+        var status = CallbackStatus.PENDING
+        subscriptionsManager.createSubscriber(
+            ExternalServiceCallbackAggregate::class, "::callback-subscriber-${delivery.id}"
+        ) {
+            `when`(ExternalServiceCallbackCreatedEvent::class) { event ->
+                println("Hello from delivery callback 1 $event")
+                if (event.transactionId == delivery.id) {
+                    println("Success hello from delivery callback 1 $status")
+                    status = event.status
+                    mutex.unlock()
+                }
+            }
+        }
+        ConditionAwaiter.awaitAtMost(10, TimeUnit.SECONDS).condition {
+            mutex.tryLock()
+        }.onSuccess {
+            if (status !== CallbackStatus.PENDING) {
+                println("Success hello from delivery callback 2 $status")
+                orderEsService.update(orderId) {
+                        orderState -> orderState.updateOrderDeliverySlot(orderId, delivery.id, slot)
+                }
+            }
+        }
+            .onFailure {
+                throw ExternalServiceException(it?.message)
+            }.startWaiting()
     }
 }

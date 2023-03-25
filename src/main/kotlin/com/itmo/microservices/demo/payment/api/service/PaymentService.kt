@@ -37,18 +37,16 @@ class PaymentService(
     private val subscriptionsManager: AggregateSubscriptionsManager,
 ) {
     fun getOrderFinLog(
-        orderId: UUID?,
+        orderId: UUID,
         userDetails: UserDetails
     ): ResponseEntity<List<UserAccountFinancialLogRecordDto>> {
-        val orders: List<OrderAggregateState> = if (orderId != null) {
+        val orders: List<OrderAggregateState> = run {
             val order = orderEsService.getState(orderId)
             if (order == null) {
                 throw NotFoundException("Order does not exist.")
             } else {
                 listOf(order)
             }
-        } else {
-            TODO("add orders selects from orders")
         }
         return ResponseEntity(
             orders.map { orderStateToFinanceLog(it) },
@@ -84,15 +82,6 @@ class PaymentService(
         val tpsResp = runBlocking { tpsExternalService.createPayment(totalPrice.toDouble()) }
         println(tpsResp)
         runBlocking { waitForPayment(tpsResp, orderId, totalPrice) }
-//        val time = Instant.now().toEpochMilli() + 10000
-//        val ev = PaymentSuccessEvent(
-//            amount = totalPrice,
-//            orderId = orderId,
-//            status = PaymentStatus.SUCCESS,
-//            timestamp = time,
-//            transactionId = tpsResp.id
-//        )
-//        orderEsService.update(orderId) { state -> state.addPayment(ev) }
         orderEsService.update(orderId) { state -> state.completeOrder(orderId) }
         val resp = PaymentSubmissionDto(
             timestamp = Instant.now().toEpochMilli() + 20000,
@@ -109,7 +98,7 @@ class PaymentService(
         ) {
             `when`(ExternalServiceCallbackCreatedEvent::class) { event ->
                 if (event.transactionId == payment.id) {
-                    println("Success hello from callback 1 $status")
+                    println("Success hello from payment callback 1 $status")
                     status = event.status
                     mutex.unlock()
                 }
@@ -118,7 +107,7 @@ class PaymentService(
         ConditionAwaiter.awaitAtMost(10, TimeUnit.SECONDS).condition {
             mutex.tryLock()
         }.onSuccess {
-            println("Success hello from callback 2 $status")
+            println("Success hello from payment callback 2 $status")
             if (status !== CallbackStatus.PENDING) {
                 val ev = PaymentSuccessEvent(
                     amount = totalPrice,
@@ -134,7 +123,5 @@ class PaymentService(
             .onFailure {
                 throw ExternalServiceException(it?.message)
             }.startWaiting()
-
-        subscriptionsManager.destroy()
     }
 }
