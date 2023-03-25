@@ -1,9 +1,6 @@
 package com.itmo.microservices.demo.booking.logic
 
-import com.itmo.microservices.demo.booking.api.model.BookingAggregate
-import com.itmo.microservices.demo.booking.api.model.BookingCreatedEvent
-import com.itmo.microservices.demo.booking.api.model.BookingLogCreatedEvent
-import com.itmo.microservices.demo.booking.api.model.BookingStatus
+import com.itmo.microservices.demo.booking.api.model.*
 import ru.quipy.core.annotations.StateTransitionFunc
 import ru.quipy.domain.AggregateState
 import java.util.*
@@ -13,10 +10,11 @@ class BookingAggregateState : AggregateState<UUID, BookingAggregate>{
     var createdAt: Long = System.currentTimeMillis()
     var updatedAt: Long = System.currentTimeMillis()
 
-    private var bookingLogSet = mutableSetOf<UUID>()
-    private var failedBookingLogSet = mutableSetOf<UUID>()
+    private var bookingLogSet: MutableList<BookingLogRecord> = mutableListOf()
+    private var failedBookingLogSet: MutableList<BookingLogRecord> = mutableListOf()
 
     override fun getId() = bookingId
+    fun getBookingLogs() = bookingLogSet
     fun getFailedBookingLogs() = failedBookingLogSet
     fun createBookingItem(): BookingCreatedEvent {
         return BookingCreatedEvent(UUID.randomUUID(), setOf())
@@ -39,9 +37,17 @@ class BookingAggregateState : AggregateState<UUID, BookingAggregate>{
 
     @StateTransitionFunc
     fun createBookingLog(event: BookingLogCreatedEvent) {
-        bookingLogSet.add(event.id)
+        val log = BookingLogRecord(
+            bookingId = bookingId,
+            bookingLogId = event.bookingLogId,
+            itemId = event.itemId,
+            amount = event.amount,
+            timestamp = System.currentTimeMillis(),
+            status = event.status
+        )
+        bookingLogSet.add(log)
         if (event.status === BookingStatus.FAILED) {
-            failedBookingLogSet.add(event.id)
+            failedBookingLogSet.add(log)
         }
     }
 }

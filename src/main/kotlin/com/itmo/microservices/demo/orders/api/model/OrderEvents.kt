@@ -8,6 +8,7 @@ import java.util.UUID
 const val ORDER_CREATED = "ORDER_CREATED"
 const val ORDER_UPDATED = "ORDER_UPDATED"
 const val ORDER_DELIVERY_SLOT_UPDATED = "ORDER_DELIVERY_SLOT_UPDATED"
+const val ORDER_UPDATE_AFTER_BOOKING = "ORDER_UPDATE_AFTER_BOOKING"
 
 @DomainEvent(name = ORDER_CREATED)
 data class OrderCreatedEvent(
@@ -29,3 +30,10 @@ data class OrderDeliverySlotUpdatedEvent(
     val deliverySlot: Instant,
     val status: OrderStatus,
 ) : Event<OrderAggregate>(name = ORDER_DELIVERY_SLOT_UPDATED)
+
+@DomainEvent(name = ORDER_UPDATE_AFTER_BOOKING)
+data class OrderUpdateAfterBooking(
+    val orderId: UUID,
+    val status: OrderStatus,
+    val bookingId: UUID
+) : Event<OrderAggregate>(name = ORDER_UPDATE_AFTER_BOOKING)
