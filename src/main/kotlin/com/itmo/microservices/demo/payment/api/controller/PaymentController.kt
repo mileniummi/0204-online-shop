@@ -28,7 +28,7 @@ import java.util.UUID
 class PaymentController (
     private val paymentService: PaymentService
 ) {
-    @PostMapping("/order/{orderId}/payment")
+    @PostMapping("/orders/{orderId}/payment")
     @Operation(
         summary = "Add item to order",
         responses = [
@@ -41,8 +41,8 @@ class PaymentController (
         ],
         security = [SecurityRequirement(name = "bearerAuth")]
     )
-    fun processOrderPayment(@PathVariable orderId: UUID, @RequestBody payment: PaymentSubmissionDto)
-        = paymentService.processOrderPayment(orderId, payment)
+    fun processOrderPayment(@PathVariable orderId: UUID)
+        = paymentService.processOrderPayment(orderId)
 
     @GetMapping("/finlog")
     @Operation(

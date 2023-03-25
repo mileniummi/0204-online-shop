@@ -1,6 +1,8 @@
 package com.itmo.microservices.demo.orders.projections
 
 import com.itmo.microservices.demo.common.exceptions.NotFoundException
+import com.itmo.microservices.demo.delivery.api.model.DeliveryLog
+import com.itmo.microservices.demo.delivery.api.model.DeliverySubmissionOutcome
 import com.itmo.microservices.demo.orders.api.model.*
 import com.itmo.microservices.demo.payment.api.model.PaymentRecordLog
 import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
@@ -32,12 +34,13 @@ class OrderExistingCache(
                 withContext(Dispatchers.IO) {
                     orderRepository.save(
                         OrderCache(
-                            event.orderId,
-                            event.timeCreated,
-                            event.status,
-                            event.itemsMap,
-                            null,
-                            mutableListOf()
+                            id = event.orderId,
+                            timeCreated = event.timeCreated,
+                            status = event.status,
+                            itemsMap = event.itemsMap,
+                            deliverySlot = null,
+                            paymentHistory = mutableListOf(),
+                            deliveryHistory = mutableListOf(),
                         )
                     )
                 }
@@ -54,10 +57,11 @@ class OrderExistingCache(
                         OrderCache(
                             id = event.orderId,
                             timeCreated = o.timeCreated,
-                            status = o.status,
+                            status = OrderStatus.COLLECTING,
                             itemsMap = itemsMap,
                             deliverySlot = o.deliverySlot,
-                            paymentHistory = o.paymentHistory
+                            paymentHistory = o.paymentHistory,
+                            deliveryHistory = o.deliveryHistory,
                         )
                     )
                 }
@@ -67,16 +71,26 @@ class OrderExistingCache(
                 val order = withContext(Dispatchers.IO) {
                     orderRepository.findById(event.orderId)
                 }
+                val deliveryLog = DeliveryLog(
+                    outcome = DeliverySubmissionOutcome.SUCCESS,
+                    preparedTime = System.currentTimeMillis(),
+                    attempts = 1,
+                    submittedTime = System.currentTimeMillis(),
+                    transactionId = event.transactionId,
+                    submissionStartedTime = System.currentTimeMillis(),
+                )
+                order.get().deliveryHistory.add(deliveryLog)
                 if (order.isPresent) {
                     withContext(Dispatchers.IO) {
                         orderRepository.save(
                             OrderCache(
-                                event.orderId,
-                                order.get().timeCreated,
-                                event.status,
-                                order.get().itemsMap,
-                                event.deliverySlot,
-                                order.get().paymentHistory,
+                                id = event.orderId,
+                                timeCreated = order.get().timeCreated,
+                                status = event.status,
+                                itemsMap = order.get().itemsMap,
+                                deliverySlot = event.deliverySlot,
+                                paymentHistory = order.get().paymentHistory,
+                                deliveryHistory = order.get().deliveryHistory
                             )
                         )
                     }
@@ -91,12 +105,13 @@ class OrderExistingCache(
                 withContext(Dispatchers.IO) {
                     orderRepository.save(
                         OrderCache(
-                            order.id,
-                            order.timeCreated,
-                            event.status,
-                            order.itemsMap,
-                            order.deliverySlot,
-                            order.paymentHistory,
+                            id = order.id,
+                            timeCreated = order.timeCreated,
+                            status = event.status,
+                            itemsMap = order.itemsMap,
+                            deliverySlot = order.deliverySlot,
+                            paymentHistory = order.paymentHistory,
+                            deliveryHistory = order.deliveryHistory,
                         )
                     )
                 }
@@ -106,21 +121,46 @@ class OrderExistingCache(
                 val order = withContext(Dispatchers.IO) {
                     orderRepository.findById(event.orderId)
                 }
+                order.get().paymentHistory.add(
+                    PaymentRecordLog(event.timestamp, event.amount, event.status, event.transactionId)
+                )
                 if (order.isPresent) {
                     withContext(Dispatchers.IO) {
                         orderRepository.save(
                             OrderCache(
-                                event.orderId,
-                                order.get().timeCreated,
-                                OrderStatus.PAID,
-                                order.get().itemsMap,
-                                order.get().deliverySlot,
-                                order.get().paymentHistory,
+                                id = event.orderId,
+                                timeCreated = order.get().timeCreated,
+                                status = OrderStatus.PAID,
+                                itemsMap = order.get().itemsMap,
+                                deliverySlot = order.get().deliverySlot,
+                                paymentHistory = order.get().paymentHistory,
+                                deliveryHistory = order.get().deliveryHistory,
                             )
                         )
                     }
                 }
                 logger.info("Order ${event.orderId} was successfully paid")
+            }
+            `when`(OrderCompleted::class) { event ->
+                val order = withContext(Dispatchers.IO) {
+                    orderRepository.findById(event.orderId)
+                }
+                if (order.isPresent) {
+                    withContext(Dispatchers.IO) {
+                        orderRepository.save(
+                            OrderCache(
+                                id = event.orderId,
+                                timeCreated = order.get().timeCreated,
+                                status = OrderStatus.COMPLETED,
+                                itemsMap = order.get().itemsMap,
+                                deliverySlot = order.get().deliverySlot,
+                                paymentHistory = order.get().paymentHistory,
+                                deliveryHistory = order.get().deliveryHistory,
+                            )
+                        )
+                    }
+                }
+                logger.info("Order ${event.orderId} was successfully completed")
             }
         }
     }
@@ -134,11 +174,12 @@ data class OrderCache(
     val timeCreated: Long,
     val status: OrderStatus,
     val itemsMap: Map<UUID, Int>,
-    val deliverySlot: Instant? = null,
-    var paymentHistory: MutableList<PaymentRecordLog>
+    val deliverySlot: Int? = null,
+    var paymentHistory: MutableList<PaymentRecordLog>,
+    var deliveryHistory: MutableList<DeliveryLog>,
 )
 
 interface OrderRepository : MongoRepository<OrderCache, UUID>{
     @Query("{ deliverySlot: {\$gte: ?0, \$lte: ?1}}")
-    fun findByDeliverySlot(deliverySlotStart: Instant, deliverySlotEnd: Instant): Optional<OrderCache>
+    fun findByDeliverySlot(deliverySlotStart: Int, deliverySlotEnd: Int): Optional<OrderCache>
 }

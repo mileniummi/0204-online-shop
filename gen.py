@@ -16,7 +16,7 @@ def gen_products():
             "amount": 300_000_000,
         }
         headers = {
-            "Authorization": "Bearer eyJhbGciOiJIUzUxMiJ9.eyJ0eXBlIjoiYWNjZXNzIiwic3ViIjoic3RyaW5nIiwiaWF0IjoxNjc5NzQ4OTU2LCJleHAiOjE2Nzk3NDk4NTYsInJvbGVzIjpbXX0.yyx7McLfj5UYFBUzop6o9blRYjO-O0ugt3Eoy672xWGNwratAF3qyWesz0iJPs4uuQXLy07u4N0vWBULtI28Pg"
+            "Authorization": "Bearer eyJhbGciOiJIUzUxMiJ9.eyJ0eXBlIjoiYWNjZXNzIiwic3ViIjoic3RyaW5nIiwiaWF0IjoxNjc5NzY0NjI5LCJleHAiOjE2Nzk3NjU1MjksInJvbGVzIjpbXX0.Qiw9ckjYJnnlT68Bicb_Lg2bZhQq3NGq0aqN1SkU7pbfSr40zd15Dkzs5bT8Fp5clkEoqCNiX2rJOb31IQ_S3g"
         }
         res = rq.post("http://localhost:8888/_internal/catalogItem", json=data, headers=headers)
         print(i, res)

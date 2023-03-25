@@ -6,6 +6,7 @@ import com.itmo.microservices.demo.catalog.logic.CatalogAggregateState
 import com.itmo.microservices.demo.common.exceptions.BadRequestException
 import com.itmo.microservices.demo.common.exceptions.EntityViolationException
 import com.itmo.microservices.demo.common.exceptions.NotFoundException
+import com.itmo.microservices.demo.external.TpsExternalService
 import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
 import com.itmo.microservices.demo.orders.api.dto.OrderResponse
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
@@ -13,6 +14,7 @@ import com.itmo.microservices.demo.orders.api.model.OrderDeliverySlotUpdatedEven
 import com.itmo.microservices.demo.orders.api.model.OrderUpdatedEvent
 import com.itmo.microservices.demo.orders.logic.OrderAggregateState
 import com.itmo.microservices.demo.orders.projections.OrderRepository
+import kotlinx.coroutines.runBlocking
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -26,7 +28,8 @@ class OrderService(
     private val catalogEsService: EventSourcingService<UUID, CatalogAggregate, CatalogAggregateState>,
     private val orderEsService: EventSourcingService<UUID, OrderAggregate, OrderAggregateState>,
     private val catalogItemService: CatalogItemService,
-    private val orderRepository: OrderRepository
+    private val orderRepository: OrderRepository,
+    private val tpsExternalService: TpsExternalService,
 ) {
 
     fun createOrder(order: CreateOrderRequest?): ResponseEntity<OrderResponse> {
@@ -76,16 +79,14 @@ class OrderService(
         )
     }
 
-    fun setOrderDeliverySlot(slot: Instant, order_id: UUID): ResponseEntity<OrderDeliverySlotUpdatedEvent> {
-        // todo remake find
-        val existingOrderWithThisSlot = orderRepository.findByDeliverySlot(slot, slot.plusSeconds(20))
-        if (existingOrderWithThisSlot.isPresent) {
-            throw BadRequestException("Delivery slot is already taken.")
-        }
+    fun setOrderDeliverySlot(slot: Int, orderId: UUID): ResponseEntity<Unit> {
         // update order
-        val order = orderEsService.getState(order_id) ?: throw NotFoundException("Order does not exist.")
+        val order = orderEsService.getState(orderId) ?: throw NotFoundException("Order does not exist.")
+        val tpsResp = runBlocking { tpsExternalService.createDelivery("Super address") }
+        orderEsService.update(order.getId())
+            { orderState -> orderState.updateOrderDeliverySlot(orderId, tpsResp.id, slot) }
         return ResponseEntity(
-            orderEsService.update(order.getId()) { orderState -> orderState.updateOrderDeliverySlot(order_id, slot) },
+            Unit,
             HttpStatus.OK
         )
     }

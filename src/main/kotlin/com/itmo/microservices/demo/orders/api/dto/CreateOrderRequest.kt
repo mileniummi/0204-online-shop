@@ -26,6 +26,6 @@ data class OrderResponse(
     val status: OrderStatus = OrderStatus.COLLECTING,
 //    @JsonDeserialize(keyUsing = OrderKeyDeserializer::class)
     val itemsMap: Map<UUID, Int>, //
-    val deliveryDuration: Duration? = null, //
+    val deliveryDuration: Int? = null, //
     val paymentHistory: List<PaymentRecordLog>
 )
