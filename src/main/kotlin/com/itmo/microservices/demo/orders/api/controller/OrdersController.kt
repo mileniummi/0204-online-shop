@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
 import java.util.UUID
+import javax.annotation.Nullable
 
 @RestController
 @RequestMapping("orders")
@@ -58,7 +59,7 @@ class OrdersController(
         ],
         security = [SecurityRequirement(name = "bearerAuth")]
     )
-    fun createOrder(@RequestBody order: CreateOrderRequest) = orderService.createOrder(order)
+    fun createOrder(@RequestBody order: CreateOrderRequest?) = orderService.createOrder(order)
 
     @PostMapping("{order_id}/items/{item_id}")
     @Operation(
