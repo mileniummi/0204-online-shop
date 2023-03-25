@@ -1,6 +1,7 @@
 package com.itmo.microservices.demo.booking.api.service
 
 import com.itmo.microservices.demo.booking.api.dto.BookingDto
+import com.itmo.microservices.demo.booking.api.dto.BookingLogRecordDto
 import com.itmo.microservices.demo.booking.api.model.BookingAggregate
 import com.itmo.microservices.demo.booking.api.model.BookingStatus
 import com.itmo.microservices.demo.booking.logic.BookingAggregateState
@@ -9,6 +10,8 @@ import com.itmo.microservices.demo.catalog.logic.CatalogAggregateState
 import com.itmo.microservices.demo.common.exceptions.EntityViolationException
 import com.itmo.microservices.demo.common.exceptions.NotFoundException
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
+import com.itmo.microservices.demo.orders.api.model.OrderStatus
+import com.itmo.microservices.demo.orders.api.model.OrderUpdateAfterBooking
 import com.itmo.microservices.demo.orders.logic.OrderAggregateState
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -34,8 +37,9 @@ class BookingService(
 
         val bookingAggregateState =
             bookingEsService.getState(booking.bookingId) ?: throw NotFoundException("Booking not created")
-
+        println("Start booking\n order = $order \n items = $items")
         for (item in items) {
+            println("serving $item")
             val catalogItem = catalogEsService.getState(item.key) ?: throw NotFoundException("Item does not exist.")
             var status = BookingStatus.SUCCESS
             if (catalogItem.amount < item.value) {
@@ -48,6 +52,7 @@ class BookingService(
                     status
                 )
             }
+            println("$item: $status")
             if (status == BookingStatus.SUCCESS) {
                 itemsToTake[item.key] = item.value
             }
@@ -64,9 +69,33 @@ class BookingService(
             throw EntityViolationException("No items left to be reserved")
         }
 
+        val failed = bookingAggregateState.getFailedBookingLogs().map { it.bookingLogId }
+        if(failed.isEmpty()) {
+            val ev = orderEsService.update(orderId) { orderState ->
+                orderState.updateOrderAfterBooking(orderId, OrderStatus.BOOKED, booking.bookingId)
+            }
+            println("update order after booking")
+        } else {
+            orderEsService.update(orderId) { orderState ->
+                orderState.updateOrderAfterBooking(orderId, OrderStatus.DISCARD, booking.bookingId)
+            }
+        }
         return ResponseEntity(
-            BookingDto(booking.bookingId, bookingAggregateState.getFailedBookingLogs()),
+            BookingDto(booking.bookingId, failed),
             HttpStatus.ACCEPTED
         )
+    }
+
+    fun getBookingHistory(bookingId: UUID): List<BookingLogRecordDto> {
+        val booking = bookingEsService.getState(bookingId) ?: throw NotFoundException("No booking $bookingId")
+        return booking.getBookingLogs().map {
+            BookingLogRecordDto(
+                bookingId = bookingId,
+                itemId = it.itemId,
+                status = it.status,
+                amount = it.amount,
+                timestamp = it.timestamp,
+            )
+        }
     }
 }

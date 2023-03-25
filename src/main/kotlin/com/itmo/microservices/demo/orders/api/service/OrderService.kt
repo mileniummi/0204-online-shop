@@ -9,18 +9,15 @@ import com.itmo.microservices.demo.common.exceptions.NotFoundException
 import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
 import com.itmo.microservices.demo.orders.api.dto.OrderResponse
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
-import com.itmo.microservices.demo.orders.api.model.OrderCreatedEvent
 import com.itmo.microservices.demo.orders.api.model.OrderDeliverySlotUpdatedEvent
 import com.itmo.microservices.demo.orders.api.model.OrderUpdatedEvent
 import com.itmo.microservices.demo.orders.logic.OrderAggregateState
 import com.itmo.microservices.demo.orders.projections.OrderRepository
-import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import ru.quipy.core.EventSourcingService
-import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
 
@@ -62,6 +59,8 @@ class OrderService(
     }
 
     fun addProductToOrder(amount: Int, order_id: UUID, item_id: UUID): ResponseEntity<OrderUpdatedEvent> {
+        println(order_id)
+        println(item_id)
         orderEsService.getState(order_id) ?: throw NotFoundException("Order does not exist.")
         val catalogItem = catalogEsService.getState(item_id) ?: throw NotFoundException("Item does not exist.")
         if (amount == 0) {
@@ -70,8 +69,9 @@ class OrderService(
         if (catalogItem.amount < amount) {
             throw EntityViolationException("Order item amount is greater than existing item amount in warehouse.")
         }
+        val ev = orderEsService.update(order_id) { orderState -> orderState.updateOrder(order_id, mapOf(item_id to amount)) }
         return ResponseEntity(
-            orderEsService.create { orderState -> orderState.updateOrder(order_id, mapOf(item_id to amount)) },
+            ev,
             HttpStatus.OK
         )
     }

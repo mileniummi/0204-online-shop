@@ -1,14 +1,11 @@
 package com.itmo.microservices.demo.orders.logic
 
 import com.itmo.microservices.demo.common.exceptions.EntityViolationException
-import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
 import com.itmo.microservices.demo.orders.api.model.*
 import com.itmo.microservices.demo.payment.api.model.PaymentRecordLog
-import com.itmo.microservices.demo.payment.api.model.PaymentStatus
 import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
 import ru.quipy.core.annotations.StateTransitionFunc
 import ru.quipy.domain.AggregateState
-import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
@@ -43,6 +40,10 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
         return OrderDeliverySlotUpdatedEvent(orderId, deliverySlot, OrderStatus.BOOKED)
     }
 
+    fun updateOrderAfterBooking(orderId: UUID, status: OrderStatus, bookingId: UUID): OrderUpdateAfterBooking {
+        return OrderUpdateAfterBooking(orderId, status, bookingId)
+    }
+
     fun addPayment(paymentSuccessEvent: PaymentSuccessEvent): PaymentSuccessEvent {
         if (status !== OrderStatus.BOOKED) {
             throw EntityViolationException("Order can be paid only on status booked")
@@ -59,11 +60,22 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     @StateTransitionFunc
     fun updateOrder(event: OrderUpdatedEvent) {
         orderId = event.orderId
+        val newItemsMap = itemsMap.toMutableMap()
+        for (i in event.itemsMap.entries) {
+            newItemsMap[i.key] = i.value
+        }
+        itemsMap = newItemsMap
     }
 
     @StateTransitionFunc
     fun updateOrderDeliverySlot(event: OrderDeliverySlotUpdatedEvent) {
         status = OrderStatus.BOOKED
+        orderId = event.orderId
+    }
+
+    @StateTransitionFunc
+    fun updateOrderAfterBooking(event: OrderUpdateAfterBooking) {
+        status = event.status
         orderId = event.orderId
     }
 

@@ -1,9 +1,7 @@
 package com.itmo.microservices.demo.orders.projections
 
-import com.itmo.microservices.demo.orders.api.model.OrderAggregate
-import com.itmo.microservices.demo.orders.api.model.OrderCreatedEvent
-import com.itmo.microservices.demo.orders.api.model.OrderDeliverySlotUpdatedEvent
-import com.itmo.microservices.demo.orders.api.model.OrderStatus
+import com.itmo.microservices.demo.common.exceptions.NotFoundException
+import com.itmo.microservices.demo.orders.api.model.*
 import com.itmo.microservices.demo.payment.api.model.PaymentRecordLog
 import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +43,26 @@ class OrderExistingCache(
                 }
                 logger.info("Update order with item ${event.orderId}")
             }
+            `when`(OrderUpdatedEvent::class) { event ->
+                withContext(Dispatchers.IO) {
+                    val o = orderRepository.findById(event.orderId)
+                        .orElseThrow{ NotFoundException("Order not found ${event.orderId}") }
+                    val itemsMap = o.itemsMap.toMutableMap()
+                    for(i in event.itemsMap)
+                        itemsMap[i.key] = i.value
+                    orderRepository.save(
+                        OrderCache(
+                            id = event.orderId,
+                            timeCreated = o.timeCreated,
+                            status = o.status,
+                            itemsMap = itemsMap,
+                            deliverySlot = o.deliverySlot,
+                            paymentHistory = o.paymentHistory
+                        )
+                    )
+                }
+                logger.info("Update order with item ${event.orderId}")
+            }
             `when`(OrderDeliverySlotUpdatedEvent::class) { event ->
                 val order = withContext(Dispatchers.IO) {
                     orderRepository.findById(event.orderId)
@@ -64,6 +82,25 @@ class OrderExistingCache(
                     }
                 }
                 logger.info("Update order ${event.orderId} with delivery slot ${event.deliverySlot}")
+            }
+            `when`(OrderUpdateAfterBooking::class) { event ->
+                val order = withContext(Dispatchers.IO) {
+                    orderRepository.findById(event.orderId)
+                        .orElseThrow {NotFoundException("Order not found ${event.orderId}")}
+                }
+                withContext(Dispatchers.IO) {
+                    orderRepository.save(
+                        OrderCache(
+                            order.id,
+                            order.timeCreated,
+                            event.status,
+                            order.itemsMap,
+                            order.deliverySlot,
+                            order.paymentHistory,
+                        )
+                    )
+                }
+                logger.info("Update order after booking ${event.orderId} ${event.bookingId} ${event.status}")
             }
             `when`(PaymentSuccessEvent::class) { event ->
                 val order = withContext(Dispatchers.IO) {
