@@ -1,11 +1,12 @@
 package com.itmo.microservices.demo.payment.api.service
 
 import com.itmo.microservices.demo.catalog.api.service.CatalogItemService
+import com.itmo.microservices.demo.common.exceptions.ExternalServiceException
 import com.itmo.microservices.demo.common.exceptions.NotFoundException
-import com.itmo.microservices.demo.external.TpsExternalService
 import com.itmo.microservices.demo.external.callbacks.dto.CallbackStatus
-import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackAggregate
 import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackCreatedEvent
+import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackAggregate
+import com.itmo.microservices.demo.external.tps.ResponseDto
 import com.itmo.microservices.demo.external.tps.TpsExternalService
 import com.itmo.microservices.demo.orders.api.model.OrderAggregate
 import com.itmo.microservices.demo.orders.logic.OrderAggregateState
@@ -15,8 +16,8 @@ import com.itmo.microservices.demo.payment.api.dto.UserAccountFinancialLogRecord
 import com.itmo.microservices.demo.payment.api.model.PaymentStatus
 import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
 import com.itmo.microservices.demo.utils.ConditionAwaiter
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.userdetails.UserDetails
@@ -33,7 +34,6 @@ class PaymentService(
     private val orderEsService: EventSourcingService<UUID, OrderAggregate, OrderAggregateState>,
     private val catalogItemService: CatalogItemService,
     private val tpsExternalService: TpsExternalService,
-    private val catalogItemService: CatalogItemService,
     private val subscriptionsManager: AggregateSubscriptionsManager,
 ) {
     fun getOrderFinLog(
@@ -83,12 +83,33 @@ class PaymentService(
 
         val tpsResp = runBlocking { tpsExternalService.createPayment(totalPrice.toDouble()) }
         println(tpsResp)
+        runBlocking { waitForPayment(tpsResp, orderId, totalPrice) }
+//        val time = Instant.now().toEpochMilli() + 10000
+//        val ev = PaymentSuccessEvent(
+//            amount = totalPrice,
+//            orderId = orderId,
+//            status = PaymentStatus.SUCCESS,
+//            timestamp = time,
+//            transactionId = tpsResp.id
+//        )
+//        orderEsService.update(orderId) { state -> state.addPayment(ev) }
+        orderEsService.update(orderId) { state -> state.completeOrder(orderId) }
+        val resp = PaymentSubmissionDto(
+            timestamp = Instant.now().toEpochMilli() + 20000,
+            transactionId = tpsResp.id
+        )
+        return ResponseEntity(resp, HttpStatus.OK)
+    }
+
+    private suspend fun waitForPayment(payment: ResponseDto, orderId: UUID, totalPrice: BigDecimal) {
         val mutex = Mutex(true)
+        var status = CallbackStatus.PENDING
         subscriptionsManager.createSubscriber(
             ExternalServiceCallbackAggregate::class, "::callback-subscriber-${payment.id}"
         ) {
             `when`(ExternalServiceCallbackCreatedEvent::class) { event ->
                 if (event.transactionId == payment.id) {
+                    println("Success hello from callback 1 $status")
                     status = event.status
                     mutex.unlock()
                 }
@@ -97,15 +118,17 @@ class PaymentService(
         ConditionAwaiter.awaitAtMost(10, TimeUnit.SECONDS).condition {
             mutex.tryLock()
         }.onSuccess {
+            println("Success hello from callback 2 $status")
             if (status !== CallbackStatus.PENDING) {
                 val ev = PaymentSuccessEvent(
                     amount = totalPrice,
                     orderId = orderId,
                     status = if (status == CallbackStatus.SUCCESS) PaymentStatus.SUCCESS else PaymentStatus.FAILED,
-                    timestamp = Instant.now(),
+                    timestamp = System.currentTimeMillis() + 20000,
                     transactionId = payment.id
                 )
-                orderEsService.update(order.getId()) { state -> state.addPayment(ev) }
+                println("Success hello from callback 3 $ev")
+                orderEsService.update(orderId) { state -> state.addPayment(ev) }
             }
         }
             .onFailure {
@@ -113,21 +136,5 @@ class PaymentService(
             }.startWaiting()
 
         subscriptionsManager.destroy()
-        val time = Instant.now().toEpochMilli()
-        val ev = PaymentSuccessEvent(
-            amount = totalPrice,
-            orderId = orderId,
-            status = PaymentStatus.SUCCESS,
-            timestamp = time,
-            transactionId = tpsResp.id
-        )
-        orderEsService.update(orderId) { state -> state.addPayment(ev) }
-        orderEsService.update(orderId) { state -> state.completeOrder(orderId) }
-        val resp = PaymentSubmissionDto(
-            timestamp = time,
-            transactionId = tpsResp.id
-        )
-        return ResponseEntity(resp, HttpStatus.OK)
     }
-
 }

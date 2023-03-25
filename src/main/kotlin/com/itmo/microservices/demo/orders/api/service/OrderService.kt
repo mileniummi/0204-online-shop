@@ -6,7 +6,6 @@ import com.itmo.microservices.demo.common.exceptions.BadRequestException
 import com.itmo.microservices.demo.common.exceptions.EntityViolationException
 import com.itmo.microservices.demo.common.exceptions.ExternalServiceException
 import com.itmo.microservices.demo.common.exceptions.NotFoundException
-import com.itmo.microservices.demo.external.TpsExternalService
 import com.itmo.microservices.demo.external.callbacks.dto.CallbackStatus
 import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackAggregate
 import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackCreatedEvent
@@ -36,7 +35,6 @@ import java.util.concurrent.TimeUnit
 class OrderService(
     private val catalogEsService: EventSourcingService<UUID, CatalogAggregate, CatalogAggregateState>,
     private val orderEsService: EventSourcingService<UUID, OrderAggregate, OrderAggregateState>,
-    private val catalogItemService: CatalogItemService,
     private val orderRepository: OrderRepository,
     private val tpsExternalService: TpsExternalService,
     private val subscriptionsManager: AggregateSubscriptionsManager,
@@ -44,18 +42,6 @@ class OrderService(
 
     fun createOrder(order: CreateOrderRequest?): ResponseEntity<OrderResponse> {
         println("Create new order")
-//        if(order?.itemsMap != null) {
-//            for (orderCatalogItem in order.itemsMap) {
-//                if (orderCatalogItem.value == 0) {
-//                    throw BadRequestException("Attempt to create order with 0 items.")
-//                }
-//                val catalogItem = catalogEsService.getState(orderCatalogItem.key)
-//                    ?: throw NotFoundException("Order item does not exist.")
-//                if (orderCatalogItem.value > catalogItem.amount) {
-//                    throw EntityViolationException("Order item amount is greater than existing item amount in warehouse.")
-//                }
-//            }
-//        }
         val o = orderEsService.create { orderState: OrderAggregateState -> orderState.createOrder(mapOf()) }
         println(o)
         val resp = OrderResponse(
@@ -93,36 +79,36 @@ class OrderService(
         // update order
         val order = orderEsService.getState(orderId) ?: throw NotFoundException("Order does not exist.")
         val tpsResp = runBlocking { tpsExternalService.createDelivery("Super address") }
-        val mutex = Mutex(true)
-        subscriptionsManager.createSubscriber(
-            ExternalServiceCallbackAggregate::class, "::callback-subscriber-${response.id}"
-        ) {
-            `when`(ExternalServiceCallbackCreatedEvent::class) { event ->
-                if (event.transactionId == response.id) {
-                    status = event.status
-                    mutex.unlock()
-                }
-            }
-        }
-        ConditionAwaiter.awaitAtMost(10, TimeUnit.SECONDS).condition {
-            mutex.tryLock()
-        }.onSuccess {
-            if (status === CallbackStatus.FAILURE) {
-                throw ExternalServiceException("Can't set order delivery slot. Request denied by external service.")
-            }
-            if (status == CallbackStatus.SUCCESS) {
-                orderEsService.update(order.getId()) { orderState ->
-                    orderState.updateOrderDeliverySlot(
-                        order_id,
-                        slot
-                    )
-                }
-            }
-        }.onFailure {
-            throw ExternalServiceException(it?.message)
-        }.startWaiting()
-
-        subscriptionsManager.destroy()
+//        val mutex = Mutex(true)
+//        subscriptionsManager.createSubscriber(
+//            ExternalServiceCallbackAggregate::class, "::callback-subscriber-${response.id}"
+//        ) {
+//            `when`(ExternalServiceCallbackCreatedEvent::class) { event ->
+//                if (event.transactionId == response.id) {
+//                    status = event.status
+//                    mutex.unlock()
+//                }
+//            }
+//        }
+//        ConditionAwaiter.awaitAtMost(10, TimeUnit.SECONDS).condition {
+//            mutex.tryLock()
+//        }.onSuccess {
+//            if (status === CallbackStatus.FAILURE) {
+//                throw ExternalServiceException("Can't set order delivery slot. Request denied by external service.")
+//            }
+//            if (status == CallbackStatus.SUCCESS) {
+//                orderEsService.update(order.getId()) { orderState ->
+//                    orderState.updateOrderDeliverySlot(
+//                        order_id,
+//                        slot
+//                    )
+//                }
+//            }
+//        }.onFailure {
+//            throw ExternalServiceException(it?.message)
+//        }.startWaiting()
+//
+//        subscriptionsManager.destroy()
 
         orderEsService.update(order.getId())
             { orderState -> orderState.updateOrderDeliverySlot(orderId, tpsResp.id, slot) }
