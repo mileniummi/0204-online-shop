@@ -1,8 +1,8 @@
 package com.itmo.microservices.demo.payment.api.service
 
 import com.itmo.microservices.demo.catalog.api.service.CatalogItemService
-import com.itmo.microservices.demo.common.exceptions.ExternalServiceException
 import com.itmo.microservices.demo.common.exceptions.NotFoundException
+import com.itmo.microservices.demo.external.TpsExternalService
 import com.itmo.microservices.demo.external.callbacks.dto.CallbackStatus
 import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackAggregate
 import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackCreatedEvent
@@ -16,6 +16,7 @@ import com.itmo.microservices.demo.payment.api.model.PaymentStatus
 import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
 import com.itmo.microservices.demo.utils.ConditionAwaiter
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.runBlocking
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.userdetails.UserDetails
@@ -32,6 +33,7 @@ class PaymentService(
     private val orderEsService: EventSourcingService<UUID, OrderAggregate, OrderAggregateState>,
     private val catalogItemService: CatalogItemService,
     private val tpsExternalService: TpsExternalService,
+    private val catalogItemService: CatalogItemService,
     private val subscriptionsManager: AggregateSubscriptionsManager,
 ) {
     fun getOrderFinLog(
@@ -65,8 +67,9 @@ class PaymentService(
         )
     }
 
-    suspend fun processOrderPayment(orderId: UUID): ResponseEntity<PaymentSubmissionDto> {
+    fun processOrderPayment(orderId: UUID): ResponseEntity<PaymentSubmissionDto> {
         val order = orderEsService.getState(orderId) ?: throw NotFoundException("Order does not exist.")
+        println("process payment ${order.getStatus()}")
 
         val items = order.itemsMap
         var totalPrice = BigDecimal(0)
@@ -78,8 +81,8 @@ class PaymentService(
             totalPrice += catalogItem.get().product.price * BigDecimal(item.value)
         }
 
-        val payment = tpsExternalService.createPayment(totalPrice.toDouble())
-        var status: CallbackStatus = CallbackStatus.PENDING
+        val tpsResp = runBlocking { tpsExternalService.createPayment(totalPrice.toDouble()) }
+        println(tpsResp)
         val mutex = Mutex(true)
         subscriptionsManager.createSubscriber(
             ExternalServiceCallbackAggregate::class, "::callback-subscriber-${payment.id}"
@@ -110,6 +113,21 @@ class PaymentService(
             }.startWaiting()
 
         subscriptionsManager.destroy()
-        return ResponseEntity(PaymentSubmissionDto(Instant.now(), payment.id), HttpStatus.OK)
+        val time = Instant.now().toEpochMilli()
+        val ev = PaymentSuccessEvent(
+            amount = totalPrice,
+            orderId = orderId,
+            status = PaymentStatus.SUCCESS,
+            timestamp = time,
+            transactionId = tpsResp.id
+        )
+        orderEsService.update(orderId) { state -> state.addPayment(ev) }
+        orderEsService.update(orderId) { state -> state.completeOrder(orderId) }
+        val resp = PaymentSubmissionDto(
+            timestamp = time,
+            transactionId = tpsResp.id
+        )
+        return ResponseEntity(resp, HttpStatus.OK)
     }
+
 }

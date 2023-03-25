@@ -13,5 +13,5 @@ class UserAccountFinancialLogRecordDto(
     val amount: BigDecimal,
     val orderId: UUID,
     val paymentTransactionId: UUID,
-    val timestamp: Instant
+    val timestamp: Long
 ) {}

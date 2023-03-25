@@ -1,6 +1,8 @@
 package com.itmo.microservices.demo.orders.logic
 
 import com.itmo.microservices.demo.common.exceptions.EntityViolationException
+import com.itmo.microservices.demo.delivery.api.model.DeliveryLog
+import com.itmo.microservices.demo.delivery.api.model.DeliverySubmissionOutcome
 import com.itmo.microservices.demo.orders.api.model.*
 import com.itmo.microservices.demo.payment.api.model.PaymentRecordLog
 import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
@@ -15,8 +17,10 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     var updatedAt: Long = System.currentTimeMillis()
     private var status: OrderStatus = OrderStatus.COLLECTING
     var paymentHistory: MutableList<PaymentRecordLog> = mutableListOf()
+    var deliveryHistory: MutableList<DeliveryLog> = mutableListOf()
     var itemsMap: Map<UUID, Int > = mapOf()
     override fun getId() = orderId
+    fun getStatus() = status
 
     fun createOrder(itemsMap: Map<UUID, Int>): OrderCreatedEvent {
         return OrderCreatedEvent(
@@ -27,17 +31,17 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     }
 
     fun updateOrder(orderId: UUID, itemsMap: Map<UUID, Int>): OrderUpdatedEvent {
-        if (status !== OrderStatus.COLLECTING) {
+        if (status !== OrderStatus.COLLECTING && status !== OrderStatus.BOOKED && status !== OrderStatus.SHIPPING) {
             throw EntityViolationException("Order can be updated only on status collecting")
         }
         return OrderUpdatedEvent(orderId, itemsMap)
     }
 
-    fun updateOrderDeliverySlot(orderId: UUID, deliverySlot: Instant): OrderDeliverySlotUpdatedEvent {
-        if (status !== OrderStatus.COLLECTING) {
-            throw EntityViolationException("Order delivery slot can be updated only on status collecting")
+    fun updateOrderDeliverySlot(orderId: UUID, transactionId: UUID, deliverySlot: Int): OrderDeliverySlotUpdatedEvent {
+        if (status !== OrderStatus.BOOKED) {
+            throw EntityViolationException("Order delivery slot can be updated only on status booked. Current $status")
         }
-        return OrderDeliverySlotUpdatedEvent(orderId, deliverySlot, OrderStatus.BOOKED)
+        return OrderDeliverySlotUpdatedEvent(orderId, transactionId, deliverySlot, OrderStatus.BOOKED)
     }
 
     fun updateOrderAfterBooking(orderId: UUID, status: OrderStatus, bookingId: UUID): OrderUpdateAfterBooking {
@@ -46,9 +50,13 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
 
     fun addPayment(paymentSuccessEvent: PaymentSuccessEvent): PaymentSuccessEvent {
         if (status !== OrderStatus.BOOKED) {
-            throw EntityViolationException("Order can be paid only on status booked")
+            throw EntityViolationException("Order can be paid only on status booked. Current $status")
         }
         return paymentSuccessEvent
+    }
+
+    fun completeOrder(orderId: UUID): OrderCompleted {
+        return OrderCompleted(orderId)
     }
 
     @StateTransitionFunc
@@ -64,6 +72,7 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
         for (i in event.itemsMap.entries) {
             newItemsMap[i.key] = i.value
         }
+        status = OrderStatus.COLLECTING
         itemsMap = newItemsMap
     }
 
@@ -71,6 +80,15 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     fun updateOrderDeliverySlot(event: OrderDeliverySlotUpdatedEvent) {
         status = OrderStatus.BOOKED
         orderId = event.orderId
+        deliveryHistory.add(
+            DeliveryLog(
+            outcome = DeliverySubmissionOutcome.SUCCESS,
+            preparedTime = System.currentTimeMillis(),
+            attempts = 1,
+            submittedTime = System.currentTimeMillis(),
+            transactionId = event.transactionId,
+            submissionStartedTime = System.currentTimeMillis(),
+        ))
     }
 
     @StateTransitionFunc
@@ -83,5 +101,10 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     fun processOrderPayment(event: PaymentSuccessEvent){
         status = OrderStatus.PAID
         paymentHistory.add(PaymentRecordLog(event.timestamp, event.amount, event.status, event.transactionId))
+    }
+
+    @StateTransitionFunc
+    fun completeOrder(event: OrderCompleted){
+        status = OrderStatus.COMPLETED
     }
 }

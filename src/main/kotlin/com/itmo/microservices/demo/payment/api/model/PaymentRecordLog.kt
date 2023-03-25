@@ -7,7 +7,7 @@ import java.util.*
 enum class PaymentStatus { FAILED, SUCCESS }
 
 class PaymentRecordLog(
-    val timestamp: Instant,
+    val timestamp: Long,
     val amount: BigDecimal,
     val status: PaymentStatus,
     val transactionId: UUID

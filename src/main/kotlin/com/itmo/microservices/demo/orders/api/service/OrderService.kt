@@ -6,6 +6,7 @@ import com.itmo.microservices.demo.common.exceptions.BadRequestException
 import com.itmo.microservices.demo.common.exceptions.EntityViolationException
 import com.itmo.microservices.demo.common.exceptions.ExternalServiceException
 import com.itmo.microservices.demo.common.exceptions.NotFoundException
+import com.itmo.microservices.demo.external.TpsExternalService
 import com.itmo.microservices.demo.external.callbacks.dto.CallbackStatus
 import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackAggregate
 import com.itmo.microservices.demo.external.callbacks.model.ExternalServiceCallbackCreatedEvent
@@ -20,6 +21,7 @@ import com.itmo.microservices.demo.orders.logic.OrderAggregateState
 import com.itmo.microservices.demo.utils.ConditionAwaiter
 import kotlinx.coroutines.sync.Mutex
 import com.itmo.microservices.demo.orders.projections.OrderRepository
+import kotlinx.coroutines.runBlocking
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -34,6 +36,8 @@ import java.util.concurrent.TimeUnit
 class OrderService(
     private val catalogEsService: EventSourcingService<UUID, CatalogAggregate, CatalogAggregateState>,
     private val orderEsService: EventSourcingService<UUID, OrderAggregate, OrderAggregateState>,
+    private val catalogItemService: CatalogItemService,
+    private val orderRepository: OrderRepository,
     private val tpsExternalService: TpsExternalService,
     private val subscriptionsManager: AggregateSubscriptionsManager,
 ) {
@@ -85,10 +89,10 @@ class OrderService(
         )
     }
 
-    suspend fun setOrderDeliverySlot(slot: Instant, order_id: UUID): ResponseEntity<OrderAggregateState> {
-        val order = orderEsService.getState(order_id) ?: throw NotFoundException("Order does not exist.")
-        val response = tpsExternalService.createDelivery(order_id.toString())
-        var status = CallbackStatus.PENDING
+    fun setOrderDeliverySlot(slot: Int, orderId: UUID): ResponseEntity<Unit> {
+        // update order
+        val order = orderEsService.getState(orderId) ?: throw NotFoundException("Order does not exist.")
+        val tpsResp = runBlocking { tpsExternalService.createDelivery("Super address") }
         val mutex = Mutex(true)
         subscriptionsManager.createSubscriber(
             ExternalServiceCallbackAggregate::class, "::callback-subscriber-${response.id}"
@@ -119,7 +123,12 @@ class OrderService(
         }.startWaiting()
 
         subscriptionsManager.destroy()
-        return ResponseEntity(order, HttpStatus.OK)
 
+        orderEsService.update(order.getId())
+            { orderState -> orderState.updateOrderDeliverySlot(orderId, tpsResp.id, slot) }
+        return ResponseEntity(
+            Unit,
+            HttpStatus.OK
+        )
     }
 }

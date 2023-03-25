@@ -44,19 +44,12 @@ class OrdersController(
     fun getOrder(@PathVariable order_id: UUID): ResponseEntity<OrderResponse> {
         println()
         val c = orderRepository.findById(order_id).orElseThrow { NotFoundException("No order $order_id") }
-//        val items: MutableMap<OrderItem, Int> = mutableMapOf()
-//        for (i in c.itemsMap.entries) {
-//            val ci = catalogService.getCatalogItemById(i.key).orElseThrow{NotFoundException("No item $i")}
-//            val ci1 = OrderItem(id = ci.id, title = ci.product.productName, price = ci.product.price)
-//            items[ci1] = i.value
-//        }
         val resp = OrderResponse(
             id = c.id,
             status = c.status,
             timeCreated = c.timeCreated,
             itemsMap = c.itemsMap,
-            deliveryDuration =
-                if (c.deliverySlot != null ){ Duration.between(Instant.now(), c.deliverySlot) } else null,
+            deliveryDuration = c.deliverySlot,
             paymentHistory = c.paymentHistory,
         )
         println(resp)
@@ -117,7 +110,7 @@ class OrdersController(
         ],
         security = [SecurityRequirement(name = "bearerAuth")]
     )
-    suspend fun setOrderDeliverySlot(@RequestParam slot: Instant, @PathVariable order_id: UUID) =
+    fun setOrderDeliverySlot(@RequestParam slot: Int, @PathVariable order_id: UUID) =
         orderService.setOrderDeliverySlot(slot, order_id)
 
     @PostMapping("{order_id}/bookings")

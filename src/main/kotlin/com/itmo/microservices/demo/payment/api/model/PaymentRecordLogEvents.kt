@@ -14,7 +14,7 @@ const val PAYMENT_FAILED = "PAYMENT_FAILED"
 @DomainEvent(name = PAYMENT_SUCCESS)
 data class PaymentSuccessEvent(
     val orderId: UUID,
-    val timestamp: Instant,
+    val timestamp: Long,
     val status: PaymentStatus,
     val amount: BigDecimal,
     val transactionId: UUID
