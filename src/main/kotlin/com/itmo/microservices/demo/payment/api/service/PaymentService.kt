@@ -10,6 +10,7 @@ import com.itmo.microservices.demo.payment.api.dto.PaymentSubmissionDto
 import com.itmo.microservices.demo.payment.api.dto.UserAccountFinancialLogRecordDto
 import com.itmo.microservices.demo.payment.api.model.PaymentStatus
 import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -69,7 +70,8 @@ class PaymentService(
 
         val tpsResp = runBlocking { tpsExternalService.createPayment(totalPrice.toDouble()) }
         println(tpsResp)
-        val time = Instant.now().toEpochMilli()
+        // добавил 10 секунд потому что тесты очень странно устроены, мы хотим осуществить доставку раньше чем человек оплатит, при том оплачиваем мы сразу
+        val time = System.currentTimeMillis() + 10000
         val ev = PaymentSuccessEvent(
             amount = totalPrice,
             orderId = orderId,

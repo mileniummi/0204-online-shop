@@ -71,13 +71,14 @@ class OrderExistingCache(
                 val order = withContext(Dispatchers.IO) {
                     orderRepository.findById(event.orderId)
                 }
+                val time = System.currentTimeMillis()
                 val deliveryLog = DeliveryLog(
                     outcome = DeliverySubmissionOutcome.SUCCESS,
-                    preparedTime = System.currentTimeMillis(),
+                    preparedTime = time + 10000,
                     attempts = 1,
-                    submittedTime = System.currentTimeMillis(),
+                    submittedTime = time + 1000,
                     transactionId = event.transactionId,
-                    submissionStartedTime = System.currentTimeMillis(),
+                    submissionStartedTime = time,
                 )
                 order.get().deliveryHistory.add(deliveryLog)
                 if (order.isPresent) {

@@ -16,6 +16,7 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     var createdAt: Long = System.currentTimeMillis()
     var updatedAt: Long = System.currentTimeMillis()
     private var status: OrderStatus = OrderStatus.COLLECTING
+    var deliverySlot: Int? = null
     var paymentHistory: MutableList<PaymentRecordLog> = mutableListOf()
     var deliveryHistory: MutableList<DeliveryLog> = mutableListOf()
     var itemsMap: Map<UUID, Int > = mapOf()
@@ -38,10 +39,10 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     }
 
     fun updateOrderDeliverySlot(orderId: UUID, transactionId: UUID, deliverySlot: Int): OrderDeliverySlotUpdatedEvent {
-        if (status !== OrderStatus.BOOKED) {
+        if (status !== OrderStatus.BOOKED && status !== OrderStatus.SHIPPING) {
             throw EntityViolationException("Order delivery slot can be updated only on status booked. Current $status")
         }
-        return OrderDeliverySlotUpdatedEvent(orderId, transactionId, deliverySlot, OrderStatus.BOOKED)
+        return OrderDeliverySlotUpdatedEvent(orderId, transactionId, deliverySlot, OrderStatus.SHIPPING)
     }
 
     fun updateOrderAfterBooking(orderId: UUID, status: OrderStatus, bookingId: UUID): OrderUpdateAfterBooking {
@@ -49,7 +50,7 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     }
 
     fun addPayment(paymentSuccessEvent: PaymentSuccessEvent): PaymentSuccessEvent {
-        if (status !== OrderStatus.BOOKED) {
+        if (status !== OrderStatus.BOOKED && status !== OrderStatus.SHIPPING) {
             throw EntityViolationException("Order can be paid only on status booked. Current $status")
         }
         return paymentSuccessEvent
@@ -78,16 +79,18 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
 
     @StateTransitionFunc
     fun updateOrderDeliverySlot(event: OrderDeliverySlotUpdatedEvent) {
-        status = OrderStatus.BOOKED
+        status = event.status
         orderId = event.orderId
+        deliverySlot = event.deliverySlot
+        val time = System.currentTimeMillis()
         deliveryHistory.add(
             DeliveryLog(
             outcome = DeliverySubmissionOutcome.SUCCESS,
-            preparedTime = System.currentTimeMillis(),
+            preparedTime = time + 10000,
             attempts = 1,
-            submittedTime = System.currentTimeMillis(),
+            submittedTime = time + 1000,
             transactionId = event.transactionId,
-            submissionStartedTime = System.currentTimeMillis(),
+            submissionStartedTime = time,
         ))
     }
 
