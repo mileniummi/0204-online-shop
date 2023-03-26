@@ -25,8 +25,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import ru.quipy.core.EventSourcingService
 import ru.quipy.streams.AggregateSubscriptionsManager
-import java.math.BigDecimal
-import java.time.Instant
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -105,9 +103,7 @@ class OrderService(
             ExternalServiceCallbackAggregate::class, "::callback-subscriber-${delivery.id}"
         ) {
             `when`(ExternalServiceCallbackCreatedEvent::class) { event ->
-                println("Hello from delivery callback 1 $event")
                 if (event.transactionId == delivery.id) {
-                    println("Success hello from delivery callback 1 $status")
                     status = event.status
                     mutex.unlock()
                 }
@@ -117,7 +113,6 @@ class OrderService(
             mutex.tryLock()
         }.onSuccess {
             if (status !== CallbackStatus.PENDING) {
-                println("Success hello from delivery callback 2 $status")
                 orderEsService.update(orderId) { orderState ->
                     orderState.updateOrderDeliverySlot(orderId, delivery.id, slot)
                 }

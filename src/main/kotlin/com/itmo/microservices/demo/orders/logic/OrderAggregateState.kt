@@ -8,7 +8,6 @@ import com.itmo.microservices.demo.payment.api.model.PaymentRecordLog
 import com.itmo.microservices.demo.payment.api.model.PaymentSuccessEvent
 import ru.quipy.core.annotations.StateTransitionFunc
 import ru.quipy.domain.AggregateState
-import java.time.Instant
 import java.util.UUID
 
 class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
@@ -39,7 +38,6 @@ class OrderAggregateState : AggregateState<UUID, OrderAggregate> {
     }
 
     fun updateOrderDeliverySlot(orderId: UUID, transactionId: UUID, deliverySlot: Int): OrderDeliverySlotUpdatedEvent {
-        println("Update slot = $deliverySlot")
         if (status !== OrderStatus.BOOKED && status !== OrderStatus.SHIPPING) {
             throw EntityViolationException("Order delivery slot can be updated only on status booked. Current $status")
         }

@@ -67,7 +67,6 @@ class PaymentService(
 
     fun processOrderPayment(orderId: UUID): ResponseEntity<PaymentSubmissionDto> {
         val order = orderEsService.getState(orderId) ?: throw NotFoundException("Order does not exist.")
-        println("process payment ${order.getStatus()}")
 
         val items = order.itemsMap
         var totalPrice = BigDecimal(0)
@@ -97,7 +96,6 @@ class PaymentService(
         ) {
             `when`(ExternalServiceCallbackCreatedEvent::class) { event ->
                 if (event.transactionId == payment.id) {
-                    println("Success hello from payment callback 1 $status")
                     status = event.status
                     mutex.unlock()
                 }
@@ -106,7 +104,6 @@ class PaymentService(
         ConditionAwaiter.awaitAtMost(10, TimeUnit.SECONDS).condition {
             mutex.tryLock()
         }.onSuccess {
-            println("Success hello from payment callback 2 $status")
             if (status !== CallbackStatus.PENDING) {
                 val ev = PaymentSuccessEvent(
                     amount = totalPrice,
@@ -115,7 +112,6 @@ class PaymentService(
                     timestamp = System.currentTimeMillis() + 20000,
                     transactionId = payment.id
                 )
-                println("Success hello from callback 3 $ev")
                 orderEsService.update(orderId) { state -> state.addPayment(ev) }
             }
         }
