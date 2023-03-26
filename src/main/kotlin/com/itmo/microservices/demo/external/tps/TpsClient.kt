@@ -53,11 +53,3 @@ data class ResponseDto(
     val cost: Double?,
     val delta: Long?
 )
-
-
-suspend fun main() {
-    val c = TpsClient()
-    println(c.createPayment(123.2))
-    println(c.createNotification("anime@anime.ru"))
-    println(c.createDelivery("pizda parasha"))
-}

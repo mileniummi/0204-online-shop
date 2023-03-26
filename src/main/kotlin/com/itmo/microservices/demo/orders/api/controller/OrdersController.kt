@@ -4,10 +4,8 @@ import com.itmo.microservices.demo.booking.api.service.BookingService
 import com.itmo.microservices.demo.catalog.api.service.CatalogItemService
 import com.itmo.microservices.demo.common.exceptions.NotFoundException
 import com.itmo.microservices.demo.orders.api.dto.CreateOrderRequest
-import com.itmo.microservices.demo.orders.api.dto.OrderItem
 import com.itmo.microservices.demo.orders.api.dto.OrderResponse
 import com.itmo.microservices.demo.orders.api.service.OrderService
-import com.itmo.microservices.demo.orders.projections.OrderCache
 import com.itmo.microservices.demo.orders.projections.OrderRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -15,15 +13,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.time.Duration
-import java.time.Instant
 import java.util.UUID
 
 @RestController
 @RequestMapping("orders")
 class OrdersController(
     private val orderRepository: OrderRepository,
-    private val catalogService: CatalogItemService,
     private val orderService: OrderService,
     private val bookingService: BookingService,
 ) {
@@ -42,19 +37,16 @@ class OrdersController(
         security = [SecurityRequirement(name = "bearerAuth")]
     )
     fun getOrder(@PathVariable order_id: UUID): ResponseEntity<OrderResponse> {
-        println()
-        val c = orderRepository.findById(order_id).orElseThrow { NotFoundException("No order $order_id") }
-        val resp = OrderResponse(
-            id = c.id,
-            status = c.status,
-            timeCreated = c.timeCreated,
-            itemsMap = c.itemsMap,
-            deliveryDuration = c.deliverySlot,
-            paymentHistory = c.paymentHistory,
-        )
-        println(resp)
+        val order = orderRepository.findById(order_id).orElseThrow { NotFoundException("No order $order_id") }
         return ResponseEntity(
-            resp,
+            OrderResponse(
+                id = order.id,
+                status = order.status,
+                timeCreated = order.timeCreated,
+                itemsMap = order.itemsMap,
+                deliveryDuration = order.deliverySlot,
+                paymentHistory = order.paymentHistory,
+            ),
             HttpStatus.CREATED
         )
     }
