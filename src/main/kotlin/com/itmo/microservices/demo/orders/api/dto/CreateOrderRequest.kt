@@ -1,15 +1,13 @@
 package com.itmo.microservices.demo.orders.api.dto
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.itmo.microservices.demo.orders.api.model.OrderStatus
-import com.itmo.microservices.demo.payment.api.dto.UserAccountFinancialLogRecordDto
 import com.itmo.microservices.demo.payment.api.model.PaymentRecordLog
 import java.math.BigDecimal
-import java.time.Duration
 import java.util.*
 
 
 class CreateOrderRequest(
+    val itemsMap: Map<UUID, Int>?
 )
 
 data class OrderItem(

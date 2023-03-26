@@ -80,7 +80,6 @@ class PaymentService(
         }
 
         val tpsResp = runBlocking { tpsExternalService.createPayment(totalPrice.toDouble()) }
-        println(tpsResp)
         runBlocking { waitForPayment(tpsResp, orderId, totalPrice) }
         orderEsService.update(orderId) { state -> state.completeOrder(orderId) }
         val resp = PaymentSubmissionDto(
